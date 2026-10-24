@@ -8,7 +8,7 @@ Configurable local viewer-style interactions for Black Ops III Zombies.
 
 Get the **Windows ZIP** from the [test-preview release](https://github.com/callmetheeggmaan/egg-live/releases/tag/v0.2.0-preview.1), extract it completely, and run `Start-Egg-LIVE.cmd`. Node, Python and dependencies are included. The source ZIP is for developers.
 
-Install the in-game Egg LIVE receiver as well. The preview ZIP includes a receiver for local installation; the Steam Workshop link will be added here after publication. The Workshop item alone does not install the companion.
+Install the in-game [Egg LIVE Workshop receiver](https://steamcommunity.com/sharedfiles/filedetails/?id=3826163025) as well. Subscribe and wait for Steam to download it. The preview ZIP also includes a receiver for local installation. The Workshop item alone does not install the companion.
 
 Choose your BO3 folder in the panel, save your settings, then use **Open BO3 with the mod** while BO3 is closed. Enter a solo/private Zombies match, configure a gift action, save, click **Try in BO3**, and return focus to the game. See `START-HERE.txt` for installation and troubleshooting.
 
