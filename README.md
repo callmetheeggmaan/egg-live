@@ -21,7 +21,7 @@ Choose your BO3 folder in the panel, save your settings, then use **Open BO3 wit
 
 ## Limits and release status
 
-33 automated checks pass and the receiver has been tested locally on Eggstinction and The Giant. Clean-folder portable startup was checked using bundled runtimes; a separate clean-PC Workshop subscription test remains pending.
+33 automated checks pass and the receiver has been tested locally on Eggstinction and The Giant. Clean-folder portable startup was checked using bundled runtimes. The public Workshop subscription downloaded successfully on the development PC, all eight compiled files matched the tested build, and the companion detected the subscribed receiver. An independent clean-PC test remains pending.
 
 Native actor limits and clear space constrain nearby spawning. +50 does not guarantee 50 simultaneous or instantaneous zombies. Nearby spawn is unavailable on dog rounds. Perks, powerups and custom-map compatibility depend on map assets and scripts. BO3 supports one gameplay mod at a time.
 
