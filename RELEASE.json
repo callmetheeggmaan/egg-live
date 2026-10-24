@@ -1,0 +1,7 @@
+{
+  "version": "0.2.0-preview.1",
+  "channel": "preview",
+  "testOnly": true,
+  "platform": "Windows x64",
+  "liveValidated": false
+}

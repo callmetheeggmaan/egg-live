@@ -1,0 +1,25 @@
+{
+  "Name": "zm_mod",
+  "GameMode": "mpl",
+  "IsCommon": false,
+  "Parent": "",
+  "Overlay": "",
+  "IsStandalone": true,
+  "IsProduction": false,
+  "IsShipped": false,
+  "DontDeploy": false,
+  "NoStreamBank": false,
+  "MapFile": "",
+  "Standalone": true,
+  "Builds": [
+    "T7"
+  ],
+  "Sources": [
+    {
+      "Type": "ALIAS",
+      "Name": "egg_live",
+      "Filename": "egg_live.csv",
+      "Specs": []
+    }
+  ]
+}

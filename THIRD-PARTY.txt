@@ -1,0 +1,4 @@
+Egg LIVE source: AGPL-3.0-or-later (LICENSE).
+TikTok LIVE Connector 2.5.0 and transitive npm dependencies retain their own licenses; see companion/node_modules/**/LICENSE* and package-lock.json.
+Portable build includes unmodified Node.js (its LICENSE included) and CPython embeddable (LICENSE.txt included).
+No association with TikTok, Activision, Treyarch or Valve.

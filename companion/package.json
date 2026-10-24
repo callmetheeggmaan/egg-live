@@ -1,0 +1,14 @@
+{
+  "name": "egg-live",
+  "version": "0.2.0-preview.1",
+  "private": true,
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test ../tests/*.test.mjs"
+  },
+  "dependencies": {
+    "tiktok-live-connector": "2.5.0"
+  }
+}

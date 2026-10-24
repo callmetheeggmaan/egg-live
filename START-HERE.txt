@@ -1,0 +1,40 @@
+EGG LIVE — TEST PREVIEW 0.2.0-preview.1
+
+This preview is locked to synthetic local gifts. Real TikTok LIVE has NOT been
+validated and cannot be connected in this build. No gifts need to be purchased.
+
+WINDOWS QUICK START
+1. Extract the entire Windows ZIP to a writable folder. Do not run inside the ZIP.
+2. Double-click Start-Egg-LIVE.cmd. Runtimes and dependencies are bundled.
+3. Under Connect > BO3 folder & troubleshooting, select your BO3 game folder
+   (the folder containing BlackOps3.exe). Save settings.
+4. Install the Egg LIVE receiver. When available, subscribe to its Steam Workshop
+   item and wait for Steam to download it. Until publication, close BO3 and copy
+   Receiver/egg_live into your BO3 game's mods folder. Do not overwrite an existing
+   custom receiver without backing it up. This preview includes only the receiver,
+   not BO3 or maps. A Steam copy of BO3 and an owned Zombies map are required.
+5. With BO3 closed, click Open BO3 with the mod. Enter a solo/private Zombies match.
+6. Add a gift action using the picture library. Save actions enables them when
+   BO3 connects. Use Try in BO3 and return to the game before the event expires.
+7. Trigger volume and Mute save automatically. Return to BO3 to apply changes.
+
+Only the host receives player effects. Use Pause all actions to stop dispatch.
+F10 is reserved by the bridge. No process-memory injection or game modification
+outside the receiver/config bridge is used. Nothing connects to TikTok at startup.
+Your settings are stored in data/settings.json beside this launcher. Keep that
+file private; export a profile if you want to share only your chosen mappings.
+No administrator access, paid hosting or runtime installation is required.
+
+LIMITS
++50 nearby zombies obeys native actor limits and clear-space checks; it cannot
+guarantee 50 simultaneous or instantaneous actors. Dog rounds reject nearby spawn.
+Perks/powerups and custom-map support depend on map assets/scripts. BO3 supports
+one gameplay mod at a time. Real LIVE/gift and clean-PC Workshop subscription
+tests remain release gates. This is a preview, not a verified LIVE release.
+
+TROUBLESHOOTING
+If Windows shows a security or permissions prompt, review it yourself. The project
+does not change security settings. Check companion-error.log if Start fails.
+Make sure port 8790 is free. Another running copy is reused; close it before
+switching versions. Change the BO3 folder if it is not installed in the example
+location. The source ZIP requires Node and Python; the Windows ZIP includes them.

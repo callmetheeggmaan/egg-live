@@ -1,0 +1,10 @@
+>mode,zm
+>type,common
+#include "zm_mod.class"
+scriptparsetree,scripts/zm/gametypes/_clientids.gsc
+scriptparsetree,scripts/zm/egg_live.gsc
+rawfile,egg_live_setup.cfg
+
+scriptparsetree,scripts/zm/egg_live_fun.gsc
+
+sound,zm_mod

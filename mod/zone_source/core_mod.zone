@@ -1,0 +1,4 @@
+>mode,core
+>type,common
+#include "core_mod.class"
+rawfile,egg_live_setup.cfg
