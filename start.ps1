@@ -13,7 +13,7 @@ try {
     try {$taskResponse=Invoke-RestMethod -Uri 'http://127.0.0.1:8790/api/state' -TimeoutSec 2;$taskRunning=($null -ne $taskResponse.actions)}catch{}
     if(-not $taskRunning){
         $env:EGG_LIVE_PYTHON=$taskPython
-        $env:EGG_LIVE_ALLOW_LIVE='0'
+        $env:EGG_LIVE_ALLOW_LIVE='1'
         Start-Process -FilePath $taskNode -ArgumentList 'server.mjs' -WorkingDirectory (Join-Path $taskRoot 'companion') -WindowStyle Hidden -RedirectStandardOutput (Join-Path $taskRoot 'companion-output.log') -RedirectStandardError (Join-Path $taskRoot 'companion-error.log')
     }
     for($taskAttempt=0;$taskAttempt -lt 30;$taskAttempt++){
@@ -26,3 +26,4 @@ try {
     Add-Type -AssemblyName PresentationFramework
     [System.Windows.MessageBox]::Show($_.Exception.Message,'Egg LIVE setup') | Out-Null
 }
+

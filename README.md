@@ -1,34 +1,59 @@
-# Egg LIVE — test preview
+# Egg LIVE
 
-Configurable local viewer-style interactions for Black Ops III Zombies.
+## Get started — two downloads
 
-**This preview is locked to synthetic test gifts. Real TikTok LIVE connectivity is disabled pending validation.** It does not require paid gifts or paid hosting.
+### 1. Subscribe to the BO3 mod
+[**Open Egg LIVE on Steam Workshop →**](https://steamcommunity.com/sharedfiles/filedetails/?id=3826163025)
 
-## Download
+Click **Subscribe**, then let Steam finish downloading.
 
-Get the **Windows ZIP** from the [test-preview release](https://github.com/callmetheeggmaan/egg-live/releases/tag/v0.2.0-preview.1), extract it completely, and run `Start-Egg-LIVE.cmd`. Node, Python and dependencies are included. The source ZIP is for developers.
+### 2. Download the companion
+[**Download Egg LIVE for Windows →**](https://github.com/callmetheeggmaan/egg-live/releases/download/v0.3.0-beta.1/Egg-LIVE-Windows.zip)
 
-Install the in-game [Egg LIVE Workshop receiver](https://steamcommunity.com/sharedfiles/filedetails/?id=3826163025) as well. Subscribe and wait for Steam to download it. The preview ZIP also includes a receiver for local installation. The Workshop item alone does not install the companion.
+Extract the whole ZIP, then double-click **Egg LIVE.exe**. Keep the `app` folder beside it. Node/Python are included; you do not need to install them.
 
-Choose your BO3 folder in the panel, save your settings, then use **Open BO3 with the mod** while BO3 is closed. Enter a solo/private Zombies match, configure a gift action, save, click **Try in BO3**, and return focus to the game. See `START-HERE.txt` for installation and troubleshooting.
+**You need both the Workshop mod and the companion.** The mod handles effects inside BO3; the companion receives gifts and lets you choose what they do.
 
-## Features
+![Egg LIVE launcher](docs/launcher.png)
 
-- Gift picture library and configurable host effects, cooldowns and combo caps.
-- +1/+10/+50 nearby zombie requests, point/ammo rewards and movement challenges.
-- Sequential viewer notifications, trigger sound volume and mute.
-- Local foreground-only F10 bridge; no process-memory injection.
+## Go LIVE
 
-## Limits and release status
+1. Open **Egg LIVE.exe**. In the control room, enter your TikTok username and BO3 folder, then save.
+2. With BO3 closed, click **Open BO3 with the mod** and enter a solo/private Zombies match.
+3. Pick gift pictures, choose their effects, and save your actions.
+4. Start your TikTok LIVE, then click **Connect TikTok LIVE** when you are ready. Return focus to BO3.
 
-33 automated checks pass and the receiver has been tested locally on Eggstinction and The Giant. Clean-folder portable startup was checked using bundled runtimes. The public Workshop subscription downloaded successfully on the development PC, all eight compiled files matched the tested build, and the companion detected the subscribed receiver. An independent clean-PC test remains pending.
+Use **Pause all actions** whenever you need to stop effects. Trigger volume and mute are above the gift grid. Closing the launcher window keeps it in the system tray; **Exit Egg LIVE** stops a companion started by that launcher.
 
-Native actor limits and clear space constrain nearby spawning. +50 does not guarantee 50 simultaneous or instantaneous zombies. Nearby spawn is unavailable on dog rounds. Perks, powerups and custom-map compatibility depend on map assets and scripts. BO3 supports one gameplay mod at a time.
+## LIVE beta status
 
-Real LIVE gifting has **not** been validated. Keep this version in test mode. It is an experimental preview, not a verified LIVE release.
+Real TikTok connectivity is **enabled**. Nothing connects automatically at startup, and the player release has no fake gift/test buttons.
 
-## Source and licenses
+**The first real LIVE gift end-to-end verification is still pending.** This is a LIVE-enabled beta, not a fully validated production release. Connection availability depends on the unofficial TikTok connector and can change.
 
-See `BUILDING.txt`, `LICENSE`, `THIRD-PARTY.txt` and the pinned `companion/package-lock.json`. Egg LIVE source is distributed under AGPL-3.0-or-later; third-party software retains its respective licenses.
+35 automated checks passed; the compiled launcher started successfully using bundled runtimes with LIVE enabled and disconnected. The Workshop download was verified on the development PC. Independent clean-PC testing remains pending.
 
-Unofficial and not affiliated with TikTok/ByteDance, Activision, Treyarch or Valve.
+## Requirements and limits
+
+- Windows x64, a Steam copy of BO3, and an owned Zombies map.
+- Host/solo/private Zombies only; one gameplay mod at a time.
+- +50 zombies obeys native actor/space limits and cannot promise 50 simultaneous or instant spawns. Nearby spawns reject dog rounds.
+- Perks, powerups and custom-map effects depend on the map's assets/scripts.
+- F10 is reserved for the foreground-only local game bridge.
+
+Your profiles stay on your PC in `%LocalAppData%\Egg LIVE`. Existing preview users can export their profile and import it into the new control room. Your personal settings and logs are not included in downloads.
+
+The launcher is currently unsigned. A launcher makes installation simpler; it does not make the program's files secret or uneditable.
+
+<details>
+<summary>For developers: source, builds and licenses</summary>
+
+Normal players only need the Windows download above and a Workshop subscription. They do not need to download this repository or the source code.
+
+Developer source is available in this repository and the release's developer assets. See `launcher/BUILD.txt`, `BUILDING.txt`, `LICENSE`, `THIRD-PARTY.txt` and the pinned `companion/package-lock.json`.
+
+Egg LIVE is AGPL-3.0-or-later; dependencies retain their own licenses. Tests remain in developer source for maintenance and are omitted from the Windows player package.
+</details>
+
+Unofficial; not affiliated with TikTok/ByteDance, Activision, Treyarch or Valve.
+

@@ -5,6 +5,7 @@ import readline from 'node:readline';
 import {fileURLToPath} from 'node:url';
 import {ACTIONS} from './engine.mjs';
 const HERE=path.dirname(fileURLToPath(import.meta.url));
+function logBaseline(root){try{return fs.statSync(path.join(root,'console_mp.log')).size;}catch{return 0;}}
 // Only TikTok username characters enter the native config packet, never commands or HUD colour codes.
 export function packetViewer(item){return item.test?'test_viewer':String(item.viewer||'Viewer').replace(/^@/,'').replace(/[^a-zA-Z0-9_.]/g,'').slice(0,64)||'Viewer';}
 export function receiverName(root){
@@ -19,8 +20,8 @@ export function receiverName(root){
   throw Error('Egg LIVE receiver is missing. Subscribe in Workshop, or install the included preview receiver. See START-HERE.txt.');
 }
 export class GameBridge {
-  constructor(config,event){this.config=config;this.event=event;this.armed=false;this.queue=[];this.pending=null;this.beat=0;this.state='waiting';this.map='';this.sequence=0;this.session=Date.now().toString(36);this.logSize=0;this.child=null;this.keyboardWait=null;this.processing=false;}
-  configure(c){if(this.pending)throw Error('Wait for the current action');const changed=c.gamePath!==this.config.gamePath;this.config=c;this.armed=false;this.queue=[];if(changed)this.beat=0;}
+  constructor(config,event){this.config=config;this.event=event;this.armed=false;this.queue=[];this.pending=null;this.beat=0;this.state='waiting';this.map='';this.sequence=0;this.session=Date.now().toString(36);this.logSize=logBaseline(config.gamePath);this.child=null;this.keyboardWait=null;this.processing=false;}
+  configure(c){if(this.pending)throw Error('Wait for the current action');const changed=c.gamePath!==this.config.gamePath;this.config=c;this.armed=false;this.queue=[];if(changed){this.beat=0;this.logSize=logBaseline(c.gamePath);this.fragment='';}}
   setAudio(audio){this.audioDesired={...audio};this.audioToken=`${this.session}_${++this.sequence}`;this.audioAck='';this.audioSent=0;}
   setup(){
     const root=this.config.gamePath;if(!fs.existsSync(path.join(root,'BlackOps3.exe')))throw Error('BlackOps3.exe was not found in this folder');

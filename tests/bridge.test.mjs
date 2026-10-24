@@ -1,6 +1,12 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {GameBridge,packetViewer} from '../companion/game.mjs';import {defaults,ACTIONS} from '../companion/engine.mjs';import {EXTRAS} from '../companion/extras.mjs';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
+test('startup ignores historical test notices and heartbeats but reads new game output',()=>{
+ const folder=fs.mkdtempSync(path.join(os.tmpdir(),'egg-live-fresh-log-'));const file=path.join(folder,'console_mp.log');
+ try{fs.writeFileSync(file,'EGGLIVE1|ready|old_map|playing|1\nEGGLIVE1|notice|shown|points|test_viewer\n');const events=[];const b=new GameBridge({...defaults(),gamePath:folder},(...e)=>events.push(e));b.readLog();assert.equal(b.status().connected,false);assert.equal(events.length,0);
+ fs.appendFileSync(file,'EGGLIVE1|ready|new_map|playing|2\n');b.readLog();assert.equal(b.status().connected,true);assert.equal(b.map,'new_map');
+ }finally{fs.rmSync(folder,{recursive:true,force:true});}
+});
 test('notification overflow and expiry are visible separately from effect acknowledgements',()=>{
   const events=[];const b=new GameBridge(defaults(),(...e)=>events.push(e));
   b.pending={id:'burst_1',action:'points'};

@@ -7,7 +7,9 @@ import {ACTIONS,defaults,validateConfig,validateAudio,GiftRouter} from './engine
 import {GameBridge} from './game.mjs';
 import {cleanGifts,mergeGifts} from './gifts.mjs';
 const HERE=path.dirname(fileURLToPath(import.meta.url));
-const testOnly=process.env.EGG_LIVE_ALLOW_LIVE!=='1';
+const testOnly=process.env.EGG_LIVE_ALLOW_LIVE==='0';
+const testTools=process.env.EGG_LIVE_TEST_TOOLS==='1';
+const version=JSON.parse(fs.readFileSync(path.join(HERE,'package.json'),'utf8')).version;
 const DATA=process.env.EGG_LIVE_DATA||path.join(HERE,'..','data');fs.mkdirSync(DATA,{recursive:true});
 const FILE=path.join(DATA,'settings.json');
 let config=defaults();if(fs.existsSync(FILE)){try{config=validateConfig(JSON.parse(fs.readFileSync(FILE)));}catch(e){console.error('Config needs attention:',e.message);}}
@@ -26,6 +28,7 @@ async function disconnect(){stopped=true;clearTimeout(reconnect);const old=live;
 async function connect(){
   if(testOnly)throw Error('This preview is in test mode. Real TikTok LIVE testing has not been enabled.');
   if(!config.username)throw Error('Enter your TikTok username first');
+  const resumeActions=bridge.autoEnable;
   await disconnect();stopped=false;tiktok={state:'connecting',error:'',room:''};
   try{
     const {TikTokLiveConnection,WebcastEvent}=await import('tiktok-live-connector');
@@ -34,7 +37,7 @@ async function connect(){
     connection.on(WebcastEvent.GIFT??'gift',e=>{if(live!==connection||!connection.isConnected)return;router.gift(e,String(connection.roomId||tiktok.room));});
     connection.on('disconnected',()=>{if(stopped||live!==connection)return;tiktok.state='reconnecting';bridge.pause();event('tiktok','Connection lost. Actions paused; reconnecting in 15 seconds.');reconnect=setTimeout(()=>connect().catch(e=>event('error',e.message)),15000);});
     const state=await connection.connect();if(live!==connection){await connection.disconnect();return;}
-    tiktok={state:'connected',error:'',room:String(state.roomId||connection.roomId||'')};event('tiktok',`Connected to @${config.username}. Enable game actions when ready.`);
+    tiktok={state:'connected',error:'',room:String(state.roomId||connection.roomId||'')};if(resumeActions)bridge.enableAfterSave();event('tiktok',`Connected to @${config.username}. ${resumeActions?'Saved actions are ready when BO3 connects.':'Save your gift actions when ready.'}`);
     try{const roomGifts=cleanGifts(await connection.fetchAvailableGifts());if(!roomGifts.length)throw Error('Room returned no gifts');gifts=mergeGifts(gifts,roomGifts);fs.writeFileSync(GIFT_CACHE,JSON.stringify(gifts));giftCatalog={...giftCatalog,roomSynced:true,updated:new Date().toISOString().slice(0,10),revision:giftCatalog.revision+1};event('catalogue',`${roomGifts.length} room gifts refreshed; ${gifts.length} gifts available in the picker.`);}catch(e){event('catalogue','Using the preloaded gift catalogue; room refresh unavailable. '+e.message);}
   }catch(e){tiktok={state:'error',error:e.message,room:''};stopped=true;event('error',`TikTok connection failed: ${e.message}`);throw e;}
 }
@@ -43,7 +46,7 @@ const server=http.createServer(async(req,res)=>{
   const json=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(data));};
   if(!/^127\.0\.0\.1(?::\d+)?$/.test(req.headers.host||''))return json(403,{error:'Local access only'});
   try{
-    if(req.method==='GET'&&url.pathname==='/api/state')return json(200,{token,config,actions:ACTIONS,tiktok,game:bridge.status(),gifts,giftCatalog,events,testOnly});
+    if(req.method==='GET'&&url.pathname==='/api/state')return json(200,{appId:'egg-live',version,token,config,actions:ACTIONS,tiktok,game:bridge.status(),gifts,giftCatalog,events,testOnly,testTools});
     if(req.method==='GET'&&url.pathname==='/api/events'){
       res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});res.write(': connected\n\n');clients.add(res);req.on('close',()=>clients.delete(res));return;
     }
@@ -61,6 +64,7 @@ const server=http.createServer(async(req,res)=>{
         case '/api/setup':bridge.setup();break;
         case '/api/launch':bridge.launch();break;
         case '/api/test':{
+          if(!testTools)return json(404,{error:'Test events are not available in the player release.'});
           const row=config.mappings.find(r=>r.id===data.mapping);if(!row)throw Error('Save and select a mapping first');
           const sample={giftId:row.giftId,giftName:row.giftName,repeatCount:Math.min(20,Number(data.count)||1),giftType:1,repeatEnd:true,msgId:randomUUID(),groupId:randomUUID(),userId:'demo',uniqueId:'Test viewer'};
           if(data.send!==true){event('preview',`${row.giftName} → ${ACTIONS.find(a=>a.id===row.action).label} • ${row.amount} • ${row.duration}s`);break;}

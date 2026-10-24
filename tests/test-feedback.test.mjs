@@ -11,7 +11,7 @@ test('HTTP test endpoint never claims a disconnected, paused or cooldown-blocked
   // Isolated fake game log: endpoint regression coverage, not gameplay proof.
   const folder=fs.mkdtempSync(path.join(os.tmpdir(),'egg-live-feedback-'));
   fs.mkdirSync(path.join(folder,'players'));
-  const child=spawn(process.execPath,[new URL('../companion/server.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{env:{...process.env,PORT:'0',EGG_LIVE_DATA:folder},stdio:['ignore','pipe','pipe'],windowsHide:true});
+  const child=spawn(process.execPath,[new URL('../companion/server.mjs',import.meta.url).pathname.replace(/^\/([A-Za-z]:)/,'$1')],{env:{...process.env,PORT:'0',EGG_LIVE_DATA:folder,EGG_LIVE_ALLOW_LIVE:'0',EGG_LIVE_TEST_TOOLS:'1'},stdio:['ignore','pipe','pipe'],windowsHide:true});
   try{
     const [output]=await once(child.stdout,'data',{signal:AbortSignal.timeout(10000)});
     const base=String(output).match(/http:\/\/127\.0\.0\.1:\d+/)[0];
