@@ -11,10 +11,10 @@ using System.Windows.Forms;
 
 [assembly: System.Reflection.AssemblyTitle("Egg LIVE")]
 [assembly: System.Reflection.AssemblyProduct("Egg LIVE")]
-[assembly: System.Reflection.AssemblyVersion("0.3.0.0")]
+[assembly: System.Reflection.AssemblyVersion("0.3.1.0")]
 
 class Launcher : Form {
-    const string Version = "0.3.0-beta.1";
+    const string Version = "0.3.1-beta.1";
     const string Url = "http://127.0.0.1:8790/";
     string root = AppDomain.CurrentDomain.BaseDirectory;
     Process owned;

@@ -8,7 +8,7 @@
 Click **Subscribe**, then let Steam finish downloading.
 
 ### 2. Download the companion
-[**Download Egg LIVE for Windows →**](https://github.com/callmetheeggmaan/egg-live/releases/download/v0.3.0-beta.1/Egg-LIVE-Windows.zip)
+[**Download Egg LIVE for Windows →**](https://github.com/callmetheeggmaan/egg-live/releases/download/v0.3.1-beta.1/Egg-LIVE-Windows.zip)
 
 Extract the whole ZIP, then double-click **Egg LIVE.exe**. Keep the `app` folder beside it. Node/Python are included; you do not need to install them.
 
@@ -31,7 +31,19 @@ Real TikTok connectivity is **enabled**. Nothing connects automatically at start
 
 **The first real LIVE gift end-to-end verification is still pending.** This is a LIVE-enabled beta, not a fully validated production release. Connection availability depends on the unofficial TikTok connector and can change.
 
-35 automated checks passed; the compiled launcher started successfully using bundled runtimes with LIVE enabled and disconnected. The Workshop download was verified on the development PC. Independent clean-PC testing remains pending.
+43 automated checks and 18 isolated in-game checks passed; the compiled launcher started successfully using bundled runtimes with LIVE enabled and disconnected. The Workshop download was verified on the development PC. Independent clean-PC testing remains pending.
+
+## Timers and gift streaks
+
+Timed gifts add to the remaining duration of the same effect. For example, 5 Roses at 10 seconds per gift add 50 seconds, within your rule's combo limit. Stable gift streaks update as counts arrive; duplicate/final frames do not count twice. Without a stable combo ID, the connector waits for the final frame.
+
+Each active effect has a compact countdown and shrinking bar on the right. Additional effects stack underneath; new gifts refill the matching bar. Opposing movement speeds replace one another. Timers cap at 60 minutes remaining.
+
+The mod connects at the setup hub before difficulty selection. Gameplay effects wait for an active player, a fresh game signal and BO3 focus. Notifications show the viewer's username, gift and effect sequentially; effects do not wait for the presentation queue.
+
+The local simulated three-gift bridge check applied in421–766ms after queueing. This excludes TikTok network delay and does not verify real paid-gift delivery end to end. The room catalogue uses 728 preloaded gifts and makes no optional paid room-list request.
+
+![Compact timer bars in-game](docs/timers.png)
 
 ## Requirements and limits
 

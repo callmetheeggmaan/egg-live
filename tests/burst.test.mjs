@@ -23,8 +23,8 @@ test('streak caps and global backpressure report the exact accepted effect count
   const bridge=new GameBridge(config,(...e)=>events.push(e));bridge.beat=Date.now();bridge.arm();
   const router=new GiftRouter(config,item=>bridge.enqueue(item),(...e)=>events.push(e));
   const gift={giftId:5655,giftType:1,groupId:'streak',repeatCount:50,userId:'1',uniqueId:'viewer'};
-  assert.equal(router.gift({...gift,repeatEnd:0}).ignored,true);
-  assert.equal(router.gift({...gift,repeatEnd:1}).sent,3);
+  assert.equal(router.gift({...gift,repeatEnd:0}).sent,3);
+  assert.equal(router.gift({...gift,repeatEnd:1}).duplicate,true);
   assert.equal(bridge.queue.length,3);
   assert.equal(events.filter(e=>e[0]==='skipped').length,2);
   assert.ok(events.some(e=>e[0]==='capped'));

@@ -19,11 +19,14 @@ function init()
 function spawned()
 {
     if(!self IsHost())return;
+    emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|waiting|"+GetUTC()+"|v3\n");
     self notify("egg_live_new_spawn");
     self SetMoveSpeedScale(1);
     self egg_live_fun::reset();
     self clear_banner();
     self.egg_live_notices=[];
+    self clear_timers();
+    self thread timer_worker();
     self thread notification_worker();
     self thread listen();
 }
@@ -47,7 +50,7 @@ function listen()
         if(GetTime()-last_beat>2000)
         {
             state="waiting";if(self ready())state="playing";
-            emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|"+state+"|"+GetUTC()+"\n");
+            emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|"+state+"|"+GetUTC()+"|v3\n");
             last_beat=GetTime();
         }
         if(GetDvarInt("egg_live_clear")==1)
@@ -68,7 +71,7 @@ function listen()
         {
             SetDvar("egg_live_command","");
             parts=StrTok(packet,"|");
-            if(parts.size==6 || parts.size==7)
+            if(parts.size==6 || parts.size==7 || parts.size==9)
             {
                 id=parts[0];action=parts[1];amount=Int(parts[2]);seconds=Int(parts[3]);
                 // Replay guard survives host respawn. Requests are short-lived UTC packets.
@@ -83,8 +86,9 @@ function listen()
                     }
                     if(status=="ok" && action!="ping")
                     {
-                        viewer="Viewer";if(parts.size==7)viewer=parts[6];
-                        self queue_banner(action,viewer,amount);
+                        viewer="Viewer";if(parts.size>=7)viewer=parts[6];
+                        gift="Gift";count=1;if(parts.size==9){gift=parts[7];count=Int(Max(1,Min(20,Int(parts[8]))));}
+                        self queue_banner(action,viewer,amount,gift,count,seconds);
                     }
                     emit("EGGLIVE1|ack|"+id+"|"+status+"|"+action+"\n");
                 }
@@ -95,7 +99,7 @@ function listen()
 }
 function apply_action(action,amount,seconds)
 {
-    amount=Int(Max(1,Min(100000,amount)));seconds=Int(Max(1,Min(120,seconds)));
+    amount=Int(Max(1,Min(100000,amount)));seconds=Int(Max(1,Min(3600,seconds)));
     if(action=="ping")return "ok";
     if(action=="points")self zm_score::add_to_player_score(amount,false);
     else if(action=="take_points")self zm_score::minus_to_player_score(Int(Min(self.score,amount)));
@@ -154,15 +158,15 @@ function banner_line(message,y,size,colour,offset,layer)
     hud SetText(message);return hud;
 }
 // Successful actions are acknowledged immediately. Only their presentation waits.
-function queue_banner(action,viewer,amount)
+function queue_banner(action,viewer,amount,gift="Gift",count=1,seconds=0)
 {
     if(!self ready())return;
     if(!IsDefined(self.egg_live_notices))self.egg_live_notices=[];
     foreach(item in self.egg_live_notices)
     {
-        if(item.action==action && item.viewer==viewer && item.amount==amount)
+        if(item.action==action && item.viewer==viewer && item.amount==amount && item.gift==gift)
         {
-            item.count++;return;
+            item.count+=count;item.seconds+=seconds;return;
         }
     }
     if(self.egg_live_notices.size>=10)
@@ -170,7 +174,7 @@ function queue_banner(action,viewer,amount)
         emit("EGGLIVE1|notice|full|"+action+"|"+viewer+"\n");return;
     }
     item=SpawnStruct();item.action=action;item.viewer=viewer;item.amount=amount;
-    item.count=1;item.created=GetTime();
+    item.count=count;item.gift=gift;item.seconds=seconds;item.created=GetTime();
     self.egg_live_notices[self.egg_live_notices.size]=item;
 }
 function notification_worker()
@@ -190,10 +194,10 @@ function notification_worker()
         {
             emit("EGGLIVE1|notice|expired|"+item.action+"|"+item.viewer+"\n");continue;
         }
-        self show_banner(item.action,item.viewer,item.amount,item.count);
+        self show_banner(item.action,item.viewer,item.amount,item.count,item.gift,item.seconds);
         emit("EGGLIVE1|notice|shown|"+item.action+"|"+item.viewer+"\n");
         // Poll while showing so down/death, Pause and respawn cannot leave old text.
-        for(tick=0;tick<48;tick++)
+        for(tick=0;tick<60;tick++)
         {
             if(!self ready() || !IsDefined(self.egg_live_banner))break;
             wait(.05);
@@ -222,7 +226,7 @@ function notice_sound(action)
     }
     return "egg_live_help";
 }
-function show_banner(action,viewer,amount,count=1)
+function show_banner(action,viewer,amount,count=1,gift="Gift",seconds=0)
 {
     self clear_banner();
     title=effect_title(action);
@@ -230,12 +234,20 @@ function show_banner(action,viewer,amount,count=1)
     if(count>1)title=title+"  x"+count;
     sender="TRIGGERED BY @"+viewer;
     if(viewer=="test_viewer")sender="TEST EVENT  /  Test viewer";
+    sender="@"+viewer;sender_size=1.5;
+    if(viewer.size>26)sender_size=1.2;if(viewer.size>40)sender_size=1.0;
+    // Untrusted gift names arrive as a bounded ASCII token, never HUD codes.
+    words=StrTok(gift,"_");gift="";foreach(word in words){if(gift!="")gift=gift+" ";gift=gift+word;}
+    detail=gift+" x"+count;if(seconds>0)detail=detail+"   +"+seconds+"s";
+    if(title.size>26)title=GetSubStr(title,0,26);
     self.egg_live_banner=[];
-    self.egg_live_banner[0]=self banner_line(title,-54,1.65,(0.03,0.02,0.09),3,0);
-    self.egg_live_banner[1]=self banner_line(title,-54,1.65,(0.57,0.12,0.8),1.5,1);
-    self.egg_live_banner[2]=self banner_line(title,-54,1.65,(1,0.8,0.22),0,2);
-    self.egg_live_banner[3]=self banner_line(sender,-32,1.05,(0.02,0.03,0.08),2,0);
-    self.egg_live_banner[4]=self banner_line(sender,-32,1.05,(0.22,0.95,1),0,2);
+    self.egg_live_banner[0]=self banner_line(sender,-100,sender_size,(0.02,0.02,0.05),3,0);
+    self.egg_live_banner[1]=self banner_line(sender,-100,sender_size,(0.2,0.95,1),0,2);
+    self.egg_live_banner[2]=self banner_line(title,-78,1.65,(0.03,0.02,0.09),4,0);
+    self.egg_live_banner[3]=self banner_line(title,-78,1.65,(0.7,0.12,0.9),2,1);
+    self.egg_live_banner[4]=self banner_line(title,-78,1.65,(1,0.8,0.22),0,2);
+    self.egg_live_banner[5]=self banner_line(detail,-56,1.1,(0.02,0.03,0.08),2,0);
+    self.egg_live_banner[6]=self banner_line(detail,-56,1.1,(1,1,1),0,2);
     // Original short cues, played only when this notification reaches the screen.
     volume=70;if(GetDvarString("egg_live_volume","")!="")volume=GetDvarInt("egg_live_volume");
     volume=Int(Max(0,Min(100,volume)));step=Int((volume+5)/10)*10;
@@ -243,6 +255,58 @@ function show_banner(action,viewer,amount,count=1)
     {
         alias=notice_sound(action)+"_v"+step;
         self PlayLocalSound(alias);emit("EGGLIVE1|sound|"+alias+"\n");
+    }
+}
+function clear_timers()
+{
+    if(IsDefined(self.egg_live_timers))foreach(hud in self.egg_live_timers)if(IsDefined(hud))hud Destroy();
+    if(IsDefined(self.egg_live_bars))foreach(hud in self.egg_live_bars)if(IsDefined(hud))hud Destroy();
+    if(IsDefined(self.egg_live_tracks))foreach(hud in self.egg_live_tracks)if(IsDefined(hud))hud Destroy();
+    self.egg_live_timers=[];self.egg_live_bars=[];self.egg_live_tracks=[];
+}
+function timer_worker()
+{
+    self endon("disconnect");self endon("egg_live_new_spawn");
+    for(i=0;i<15;i++)
+    {
+        hud=NewClientHudElem(self);hud.horzAlign="right";hud.vertAlign="top";
+        hud.alignX="right";hud.alignY="top";hud.x=-18;hud.y=70;
+        hud.font="objective";hud.fontScale=1.2;hud.foreground=true;hud.sort=115;
+        hud.hideWhenDead=true;hud.hideWhenInMenu=true;hud.alpha=0;self.egg_live_timers[i]=hud;
+        track=NewClientHudElem(self);track.horzAlign="right";track.vertAlign="top";
+        track.alignX="left";track.alignY="top";track.x=-168;track.y=85;
+        track SetShader("white",150,3);track.color=(0.04,0.05,0.08);
+        track.foreground=true;track.sort=113;track.hideWhenDead=true;track.hideWhenInMenu=true;track.alpha=0;
+        self.egg_live_tracks[i]=track;
+        bar=NewClientHudElem(self);bar.horzAlign="right";bar.vertAlign="top";
+        bar.alignX="left";bar.alignY="top";bar.x=-168;bar.y=85;bar SetShader("white",150,3);
+        bar.foreground=true;bar.sort=114;bar.hideWhenDead=true;bar.hideWhenInMenu=true;bar.alpha=0;
+        self.egg_live_bars[i]=bar;
+    }
+    for(;;)
+    {
+        row=0;
+        foreach(hud in self.egg_live_timers)hud.alpha=0;
+        foreach(hud in self.egg_live_tracks)hud.alpha=0;
+        foreach(hud in self.egg_live_bars)hud.alpha=0;
+        if(self ready() && IsDefined(self.egg_fun_order))foreach(action in self.egg_fun_order)
+        {
+            if(!IsDefined(self.egg_fun_until[action]) || self.egg_fun_until[action]<=GetTime() || row>=15)continue;
+            hud=self.egg_live_timers[row];track=self.egg_live_tracks[row];bar=self.egg_live_bars[row];
+            until=self.egg_fun_until[action];remaining=Int((until-GetTime()+999)/1000);
+            minutes=Int(remaining/60);secs=remaining%60;prefix="";if(secs<10)prefix="0";
+            title=effect_title(action);if(title.size>23)title=GetSubStr(title,0,23);
+            hud SetText(title+"  "+minutes+":"+prefix+secs);
+            hud.fontScale=1.2;hud.y=70+row*25;hud.color=(1,1,1);hud.alpha=1;
+            track.y=hud.y+15;bar.y=track.y;track.alpha=0.75;bar.alpha=1;
+            bar.color=(0.2,0.85,1);if(remaining<=5)bar.color=(1,0.45,0.2);
+            span=Max(1,self.egg_fun_span[action]);
+            width=Int(Max(1,Min(150,150*(until-GetTime())/span)));
+            bar.timer_end=until;bar.timer_width=width;
+            bar SetShader("white",width,3);
+            row++;
+        }
+        wait(0.1);
     }
 }
 function emit(message)

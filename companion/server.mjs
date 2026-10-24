@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {ACTIONS,defaults,validateConfig,validateAudio,GiftRouter} from './engine.mjs';
 import {GameBridge} from './game.mjs';
-import {cleanGifts,mergeGifts} from './gifts.mjs';
+import {mergeGifts} from './gifts.mjs';
+import {isGiftCatalogueError} from './public/connection-status.js';
 const HERE=path.dirname(fileURLToPath(import.meta.url));
 const testOnly=process.env.EGG_LIVE_ALLOW_LIVE==='0';
 const testTools=process.env.EGG_LIVE_TEST_TOOLS==='1';
@@ -22,7 +23,8 @@ let giftCatalog={updated:bundled.updated,source:bundled.source,roomSynced:false,
 function event(kind,message){const e={id:randomUUID(),time:new Date().toISOString(),kind,message:String(message).slice(0,500)};events.unshift(e);events.length=Math.min(events.length,150);for(const c of clients)c.write(`data: ${JSON.stringify(e)}\n\n`);}
 const bridge=new GameBridge(config,event);const router=new GiftRouter(config,a=>bridge.enqueue(a),event);
 bridge.setAudio(validateAudio(config));
-setInterval(()=>bridge.tick(),250).unref();
+setInterval(()=>bridge.tick(),100).unref();
+bridge.checkProcess();setInterval(()=>bridge.checkProcess(),2000).unref();
 function persist(c){const temp=FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(c,null,2));fs.renameSync(temp,FILE);}
 async function disconnect(){stopped=true;clearTimeout(reconnect);const old=live;live=null;if(old)await old.disconnect();tiktok={state:'disconnected',error:'',room:''};bridge.pause();}
 async function connect(){
@@ -33,12 +35,14 @@ async function connect(){
   try{
     const {TikTokLiveConnection,WebcastEvent}=await import('tiktok-live-connector');
     const connection=new TikTokLiveConnection(config.username,{processInitialData:false,enableExtendedGiftInfo:false});live=connection;
-    connection.on('error',err=>{tiktok.error=String(err?.message||err?.info||err);event('tiktok',tiktok.error);});
+    connection.on('error',err=>{if(isGiftCatalogueError(err)){event('catalogue','Room gift-list refresh unavailable; the preloaded library remains available.');return;}tiktok.error=String(err?.message||err?.info||err);event('tiktok',tiktok.error);});
     connection.on(WebcastEvent.GIFT??'gift',e=>{if(live!==connection||!connection.isConnected)return;router.gift(e,String(connection.roomId||tiktok.room));});
     connection.on('disconnected',()=>{if(stopped||live!==connection)return;tiktok.state='reconnecting';bridge.pause();event('tiktok','Connection lost. Actions paused; reconnecting in 15 seconds.');reconnect=setTimeout(()=>connect().catch(e=>event('error',e.message)),15000);});
     const state=await connection.connect();if(live!==connection){await connection.disconnect();return;}
     tiktok={state:'connected',error:'',room:String(state.roomId||connection.roomId||'')};if(resumeActions)bridge.enableAfterSave();event('tiktok',`Connected to @${config.username}. ${resumeActions?'Saved actions are ready when BO3 connects.':'Save your gift actions when ready.'}`);
-    try{const roomGifts=cleanGifts(await connection.fetchAvailableGifts());if(!roomGifts.length)throw Error('Room returned no gifts');gifts=mergeGifts(gifts,roomGifts);fs.writeFileSync(GIFT_CACHE,JSON.stringify(gifts));giftCatalog={...giftCatalog,roomSynced:true,updated:new Date().toISOString().slice(0,10),revision:giftCatalog.revision+1};event('catalogue',`${roomGifts.length} room gifts refreshed; ${gifts.length} gifts available in the picker.`);}catch(e){event('catalogue','Using the preloaded gift catalogue; room refresh unavailable. '+e.message);}
+    // Room catalogue signing is a paid service. Gift websocket routing only needs IDs,
+    // so use the bundled/cached catalogue without making that optional request.
+    event('catalogue',`${gifts.length} preloaded gifts ready. No paid room catalogue request is made.`);
   }catch(e){tiktok={state:'error',error:e.message,room:''};stopped=true;event('error',`TikTok connection failed: ${e.message}`);throw e;}
 }
 const server=http.createServer(async(req,res)=>{
@@ -79,7 +83,7 @@ const server=http.createServer(async(req,res)=>{
       }return json(200,{ok:true});
     }
     if(req.method==='GET'){
-      const files={'/':'index.html','/app.js':'app.js','/style.css':'style.css'};const file=files[url.pathname];
+      const files={'/':'index.html','/app.js':'app.js','/connection-status.js':'connection-status.js','/style.css':'style.css'};const file=files[url.pathname];
       if(file){res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.css')?'text/css':'text/javascript','Content-Security-Policy':"default-src 'self'; img-src 'self' https:; connect-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return fs.createReadStream(path.join(HERE,'public',file)).pipe(res);}
     }json(404,{error:'Not found'});
   }catch(e){event('error',e.message);json(400,{error:e.message});}

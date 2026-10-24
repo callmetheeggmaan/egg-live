@@ -36,7 +36,7 @@ export function validateConfig(c) {
     const giftId=String(r.giftId||'');if(!/^\d{1,20}$/.test(giftId))throw Error('Choose a gift or enter its numeric ID');
     const number=(v,lo,hi)=>{v=Number(v);if(!Number.isFinite(v)||v<lo||v>hi)throw Error(`Value must be ${lo}–${hi}`);return Math.floor(v);};
     return {id,giftId,giftName:String(r.giftName||giftId).slice(0,80),action:a.id,enabled:r.enabled!==false,
-      amount:number(r.amount??a.amount,1,a.max),duration:number(r.duration??a.duration,0,120),
+      amount:number(r.amount??a.amount,1,a.max),duration:number(r.duration??a.duration,a.duration>0?1:0,120),
       cooldown:number(r.cooldown??3,0,300),maxRepeat:number(r.maxRepeat??5,1,20),perGift:r.perGift!==false};
   });
   const username=String(c.username||'').replace(/^@/,'');if(username&&!/^[\w.]{1,64}$/.test(username))throw Error('Enter only your TikTok username');
@@ -45,11 +45,12 @@ export function validateConfig(c) {
     queueLimit:Math.max(1,Math.min(100,Number(c.queueLimit)||50)),eventMaxAge:Math.max(5,Math.min(60,Number(c.eventMaxAge)||30)),mappings};
 }
 // Both the installed 2.x payload and the current typed payload are normalized here.
-export function normalizeGift(e,room='') {
+export function normalizeGift(e,room='',incremental=false) {
   const gift=e.giftDetails||e.gift||{};
   const giftId=String(e.giftId??gift.id??gift.gift_id??'');
   const type=Number(e.giftType??gift.type??gift.gift_type??0);
-  if(type===1 && !(e.repeatEnd===true||e.repeatEnd===1||e.repeatEnd==='1'))return null;
+  const ended=e.repeatEnd===true||e.repeatEnd===1||e.repeatEnd==='1';
+  if(type===1 && !ended && !(incremental&&e.groupId))return null;
   if(!/^\d{1,20}$/.test(giftId))return null;
   const sender=String(e.userId??e.user?.userId??e.user?.id??e.uniqueId??'unknown');
   const message=String(e.msgId??e.common?.msgId??e.common?.messageId??'');
@@ -64,16 +65,23 @@ export function normalizeGift(e,room='') {
 export class GiftRouter {
   constructor(config,onAction,onEvent,now=()=>Date.now()){this.config=config;this.onAction=onAction;this.onEvent=onEvent;this.now=now;this.seen=new Map();this.last=new Map();}
   gift(raw,room='',test=false){
-    const g=normalizeGift(raw,room);if(!g)return {ignored:true};
-    const now=this.now();for(const [k,t]of this.seen)if(now-t>3600000)this.seen.delete(k);
-    if(this.seen.has(g.key))return {duplicate:true};this.seen.set(g.key,now);
+    const g=normalizeGift(raw,room,true);if(!g)return {ignored:true};
+    const now=this.now();for(const [k,t]of this.seen)if(now-t.time>3600000)this.seen.delete(k);
+    const previous=this.seen.get(g.key)?.count||0;
+    if(g.count<=previous)return {duplicate:true};this.seen.set(g.key,{time:now,count:g.count});
     let sent=0;
     for(const r of this.config.mappings){
       if(!r.enabled||r.giftId!==g.giftId)continue;
-      if(now-(this.last.get(r.id)??-Infinity)<r.cooldown*1000){this.onEvent('cooldown',`${g.name}: mapping cooling down`);continue;}
-      this.last.set(r.id,now);const repeats=r.perGift?Math.min(g.count,r.maxRepeat):1;
-      for(let i=0;i<repeats;i++){if(this.onAction({action:r.action,amount:r.amount,duration:r.duration,viewer:g.viewer,gift:g.name,test})!==false)sent++;}
-      if(r.perGift&&g.count>r.maxRepeat)this.onEvent('capped',`${g.name}: ${g.count} gifts capped to ${r.maxRepeat} actions`);
+      const timed=ACTIONS.find(a=>a.id===r.action).duration>0;
+      // A growing combo and timed top-ups must not lose gifts to a reset cooldown.
+      if(!previous&&!timed&&now-(this.last.get(r.id)??-Infinity)<r.cooldown*1000){this.onEvent('cooldown',`${g.name}: mapping cooling down`);continue;}
+      this.last.set(r.id,now);
+      const repeats=r.perGift?Math.max(0,Math.min(g.count,r.maxRepeat)-Math.min(previous,r.maxRepeat)):(previous?0:1);
+      if(!repeats)continue;
+      const base={action:r.action,amount:r.amount,duration:r.duration,viewer:g.viewer,gift:r.giftName||g.name,test};
+      if(timed&&!['panic_pack','chaos_roulette'].includes(r.action)){if(this.onAction({...base,duration:r.duration*repeats,giftCount:repeats})!==false)sent++;}
+      else for(let i=0;i<repeats;i++){if(this.onAction({...base,giftCount:1})!==false)sent++;}
+      if(r.perGift&&g.count>r.maxRepeat&&previous<=r.maxRepeat)this.onEvent('capped',`${g.name}: combo limit ${r.maxRepeat} reached; extra gifts do not add effects`);
     }
     this.onEvent(test?'test':'gift',`${g.viewer} • ${g.name} ×${g.count} • ${sent} action(s)`);return {sent};
   }

@@ -12,5 +12,7 @@ test('receiver discovery supports subscribed Workshop installs and the local pre
     fs.writeFileSync(path.join(subscribed,'workshop.json'),JSON.stringify({FolderName:'other_mod',Type:'mod'}));fs.writeFileSync(path.join(subscribed,'zm_mod.ff'),'fixture');
     assert.equal(receiverName(game),'egg_live');
     fs.writeFileSync(path.join(subscribed,'workshop.json'),JSON.stringify({FolderName:'egg_live',Type:'mod'}));assert.equal(receiverName(game),'123456789');
+    fs.writeFileSync(path.join(game,'mods/egg_live/workshop.json'),JSON.stringify({ReceiverProtocol:3}));
+    assert.equal(receiverName(game),'egg_live','the verified timer update takes priority over an older subscribed receiver');
   }finally{fs.rmSync(base,{recursive:true,force:true});}
 });

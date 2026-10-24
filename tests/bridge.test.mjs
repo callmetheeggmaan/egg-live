@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {GameBridge,packetViewer} from '../companion/game.mjs';import {defaults,ACTIONS} from '../companion/engine.mjs';import {EXTRAS} from '../companion/extras.mjs';
+import {GameBridge,packetViewer,actionPacket} from '../companion/game.mjs';import {defaults,ACTIONS} from '../companion/engine.mjs';import {EXTRAS} from '../companion/extras.mjs';
 import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 test('startup ignores historical test notices and heartbeats but reads new game output',()=>{
  const folder=fs.mkdtempSync(path.join(os.tmpdir(),'egg-live-fresh-log-'));const file=path.join(folder,'console_mp.log');
@@ -36,3 +36,19 @@ test('explicit pause cancels automatic enabling until the next save',async()=>{c
 test('saved actions can wait for a previously connected game to resume, without sending input while stale',async()=>{const b=new GameBridge(defaults(),()=>{});b.readLog=()=>{};b.map='known_map';b.state='playing';b.enableAfterSave();let sent=false;b.key=async()=>{sent=true;};assert.equal(b.enqueue({action:'points'}),true);await b.tick();assert.equal(sent,false);assert.equal(b.queue.length,1);b.pause();assert.equal(b.queue.length,0);});
 test('waiting actions expire even before BO3 reconnects',async()=>{const b=new GameBridge(defaults(),()=>{});b.readLog=()=>{};b.map='known_map';b.enableAfterSave();b.enqueue({action:'points'});b.queue[0].created=Date.now()-31000;await b.tick();assert.equal(b.queue.length,0);});
 
+
+test('v3 sends combined duration, real sender, safe gift and count without clipping at120seconds',()=>{
+ const a=ACTIONS.find(a=>a.id==='no_ads');const packet=actionPacket({action:'no_ads',amount:1,duration:600,viewer:'@viewer.one',gift:'Rose|;\n^1',giftCount:5},a,'safe_1',3).split('|');
+ assert.equal(packet[3],'600');assert.equal(packet[5],'v3');assert.equal(packet[6],'viewer.one');assert.equal(packet[7],'Rose1');assert.equal(packet[8],'5');assert.equal(packet.length,9);
+ const b=new GameBridge(defaults(),()=>{});b.consume('EGGLIVE1|ready|map|playing|1|v3\n');assert.equal(b.status().protocol,3);b.consume('EGGLIVE1|ready|map|playing|2\n');assert.equal(b.status().protocol,2);
+});
+test('legacy receiver refuses timed stacking with an actionable error instead of silently resetting it',async()=>{
+ const messages=[];const b=new GameBridge(defaults(),(...e)=>messages.push(e));b.readLog=()=>{};b.beat=Date.now();b.state='playing';b.arm();b.enqueue({action:'slow',amount:1,duration:50});b.key=async()=>{throw Error('must not dispatch');};await b.tick();assert.equal(b.queue.length,0);assert.ok(messages.some(e=>e[0]==='rejected'&&/update the Workshop/.test(e[1])));
+});
+
+test('spawn hub connects before difficulty selection and paused signals keep session identity',()=>{
+ const b=new GameBridge(defaults(),()=>{});b.consume('EGGLIVE1|ready|zm_eggstinction|waiting|1|v3\n');
+ assert.equal(b.status().connected,true);assert.equal(b.status().state,'waiting');
+ b.beat=Date.now()-9000;assert.equal(b.status().connected,true);assert.equal(b.status().signalFresh,false);assert.equal(b.status().state,'paused');assert.throws(()=>b.arm());
+ b.gameRunning=false;assert.equal(b.status().connected,false);
+});

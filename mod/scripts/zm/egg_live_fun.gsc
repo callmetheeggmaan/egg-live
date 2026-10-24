@@ -143,6 +143,7 @@ function enemies(action,seconds)
     if(enemies.size==0)return "no_enemies";
     limit=enemies.size;if(action=="kill_nearest")limit=1;if(action=="kill_five")limit=Min(5,limit);if(action=="kill_half")limit=Int((limit+1)/2);
     if(action=="kill_nearest") {nearest=enemies[0];foreach(z in enemies)if(DistanceSquared(z.origin,self.origin)<DistanceSquared(nearest.origin,self.origin))nearest=z;enemies[0]=nearest;}
+    if(action=="zombie_slow" || action=="zombie_fast")self extend_timer(action,seconds,"enemy_speed");
     for(i=0;i<limit;i++)
     {
         z=enemies[i];
@@ -156,6 +157,9 @@ function enemies(action,seconds)
 }
 function enemy_speed(scale,seconds)
 {
+    if(!IsDefined(self.egg_fun_enemy_scale) || self.egg_fun_enemy_scale!=scale)self.egg_fun_enemy_until=GetTime();
+    self.egg_fun_enemy_scale=scale;
+    self.egg_fun_enemy_until=Min(GetTime()+3600000,Max(GetTime(),self.egg_fun_enemy_until)+seconds*1000);
     self notify("egg_fun_speed");self endon("egg_fun_speed");self endon("death");
     if(IsDefined(self.zombie_move_speed_override) && !IsDefined(self.egg_fun_base_speed))return;
     if(!IsDefined(self.egg_fun_base_speed))self.egg_fun_base_speed=self.zombie_move_speed;
@@ -163,12 +167,34 @@ function enemy_speed(scale,seconds)
     self.zombie_move_speed_restore=self.egg_fun_base_speed;
     speed="walk";if(scale>1)speed="sprint";
     self zombie_utility::set_zombie_run_cycle_override_value(speed);
-    wait(seconds);
+    while(GetTime()<self.egg_fun_enemy_until)wait(.1);
+    self.egg_fun_enemy_scale=undefined;
     self zombie_utility::set_zombie_run_cycle_restore_from_override();self.egg_fun_base_speed=undefined;
+}
+function extend_timer(action,seconds,group)
+{
+    if(!IsDefined(self.egg_fun_until))self.egg_fun_until=[];
+    if(!IsDefined(self.egg_fun_actions))self.egg_fun_actions=[];
+    if(!IsDefined(self.egg_fun_order))self.egg_fun_order=[];
+    previous=self.egg_fun_actions[group];
+    if(IsDefined(previous) && previous!=action)self.egg_fun_until[previous]=undefined;
+    if(!IsDefined(self.egg_fun_until[action]) || self.egg_fun_until[action]<=GetTime())
+    {
+        order=[];
+        foreach(entry in self.egg_fun_order)if(entry!=action && IsDefined(self.egg_fun_until[entry]) && self.egg_fun_until[entry]>GetTime())order[order.size]=entry;
+        order[order.size]=action;self.egg_fun_order=order;
+    }
+    self.egg_fun_actions[group]=action;
+    until=GetTime();if(IsDefined(self.egg_fun_until[action]))until=Max(until,self.egg_fun_until[action]);
+    self.egg_fun_until[action]=Min(GetTime()+3600000,until+seconds*1000);
+    if(!IsDefined(self.egg_fun_span))self.egg_fun_span=[];
+    self.egg_fun_span[action]=self.egg_fun_until[action]-GetTime();
+    /# PrintLn("EGGLIVE1|timer|"+action+"|"+Int((self.egg_fun_until[action]-GetTime()+999)/1000)); #/
 }
 function timed(action,seconds)
 {
     group=action;if(action=="speed_boost" || action=="super_speed" || action=="snail" || action=="slow")group="move_speed";
+    self extend_timer(action,seconds,group);
     self notify("egg_fun_"+group);self endon("egg_fun_"+group);self endon("disconnect");self endon("egg_live_new_spawn");
     if(group=="move_speed") {if(!IsDefined(self.egg_fun_move_base))self.egg_fun_move_base=self GetMoveSpeedScale();scale=1.4;if(action=="super_speed")scale=1.8;if(action=="snail")scale=.2;if(action=="slow")scale=.35;self SetMoveSpeedScale(scale);}
     if(action=="glass_cannon"){if(!IsDefined(self.egg_fun_health_base))self.egg_fun_health_base=self.health;self.health=2;}
@@ -183,15 +209,17 @@ function timed(action,seconds)
     if(action=="no_ads")self AllowAds(false);
     if(action=="no_melee")self AllowMelee(false);
     if(action=="blur")self SetBlur(6,.2);
-    for(i=0;i<seconds*5;i++)
+    i=0;
+    while(GetTime()<self.egg_fun_until[action])
     {
         if(!IsAlive(self) || self laststand::player_is_in_laststand())break;
         if(action=="no_sprint")self AllowSprint(false);
         if(action=="glass_cannon")self.health=Int(Min(self.health,2));
         if(i%5==0 && action=="ammo_rain"){gun=self GetCurrentWeapon();self GiveMaxAmmo(gun);self SetWeaponAmmoClip(gun,gun.clipSize);}
         if(i%5==0 && action=="dizzy"){v=self GetPlayerAngles();self SetPlayerAngles((v[0],v[1]+RandomIntRange(-90,91),0));}
-        wait(.2);
+        i++;wait(.2);
     }
+    self.egg_fun_until[action]=undefined;self.egg_fun_actions[group]=undefined;
     if(group=="move_speed"){self SetMoveSpeedScale(self.egg_fun_move_base);self.egg_fun_move_base=undefined;}
     if(action=="glass_cannon"){if(IsAlive(self) && !self laststand::player_is_in_laststand())self.health=Int(Min(self.egg_fun_health_base,self.maxhealth));self.egg_fun_health_base=undefined;}
     if(action=="knife_only")self EnableWeapons();
@@ -203,6 +231,7 @@ function timed(action,seconds)
 }
 function reset()
 {
+    self.egg_fun_until=[];self.egg_fun_actions=[];self.egg_fun_order=[];self.egg_fun_span=[];
     self AllowAds(true);self AllowJump(true);self AllowSprint(true);self AllowMelee(true);self EnableWeapons();
     self SetDepthOfField(0,0,512,4000,4,0);self.egg_fun_move_base=undefined;self.egg_fun_health_base=undefined;
     self SetBlur(0,0);
