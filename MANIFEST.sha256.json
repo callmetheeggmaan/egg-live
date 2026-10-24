@@ -9,7 +9,7 @@
   "companion/assets/gifts.json": "3500ca9f8f56f4b537786df814f21f0dbdf6437c0dd4288962fcdfd5c5d6274a",
   "companion/engine.mjs": "aa4d66469ec32b609f011f138dbe2e23d615afe0113b399c177b8e0126f912d6",
   "companion/extras.mjs": "a201cc865b47469ac6d60ed2e32a6afb14d2d3defc1ebe9e0e2d74e1f5ab17ac",
-  "companion/game.mjs": "520cc599defe9ef7e4de640d97ccf07268ee039132ce7bd17d82b20eefcf5a96",
+  "companion/game.mjs": "ad168b0ac42aa73a9366cf990dd9967e21ef590429c8ac7aa684ea7c0a80359d",
   "companion/gifts.mjs": "368c75b439d79b005e151ad8a5b3fe19582f70375177e2ca55707f5930c163d1",
   "companion/keyboard.py": "4df5ab442b86a3d5d8e5512da557a0a8a7acab61e599c95629a948540576cb52",
   "companion/package-lock.json": "1ee52ad1e636b6a75fe9356b2c542c9716415d01fad1022072b5c80bc79d31b8",
