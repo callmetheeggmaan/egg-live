@@ -70,6 +70,10 @@ Egg LIVE is AGPL-3.0-or-later; dependencies retain their own licenses. Tests rem
 Unofficial; not affiliated with TikTok/ByteDance, Activision, Treyarch or Valve.
 
 
+## Eggstinction map
+
+[Subscribe to the repaired Eggstinction map](https://steamcommunity.com/sharedfiles/filedetails/?id=3826769399). This separate map download includes the door and death/restart repairs. Egg LIVE also supports compatible stock maps; their own doors and game-over menus remain map-specific.
+
 ## Repair update 0.3.2
 
 Restores map HUD/prompts, centre viewer announcements and death/restart text by allocating timer HUD only when needed. Heart Me add-zombies actions now deliver actual nearby actors. Eggstinction door collision and safe zone transitions are repaired in the separate map update; updating the receiver alone cannot replace a map. Local checks do not guarantee every effect on every custom map.

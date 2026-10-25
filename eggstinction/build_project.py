@@ -291,7 +291,7 @@ function egg_start_auras()
 }
 
 '''
-c+=''' 
+c+='''
 function egg_reticle_changed(localClientNum,oldVal,newVal,bNewEnt,bInitialSnap,fieldName,bWasTimeJump)
 {
     if (newVal==0) SetDvar("cg_drawCrosshair",1);
