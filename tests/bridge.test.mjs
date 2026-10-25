@@ -27,6 +27,18 @@ test('viewer packet preserves real username and removes native command/HUD synta
 test('exactly fifty extras plus three nearby zombie presets',()=>{assert.equal(EXTRAS.length,53);assert.equal(ACTIONS.length,69);assert.equal(new Set(ACTIONS.map(a=>a.id)).size,69);assert.deepEqual(EXTRAS.filter(a=>a.id.startsWith('spawn_near_')).map(a=>a.amount),[1,10,50]);});
 test('only the outstanding packet can be acknowledged',()=>{const events=[];const b=new GameBridge(defaults(),(...e)=>events.push(e));b.pending={id:'abc_1',action:'points'};b.consume('EGGLIVE1|ack|different_1|ok|points\n');assert.ok(b.pending);b.consume('EGGLIVE1|ack|abc_1|ok|points\n');assert.equal(b.pending,null);assert.equal(events[0][0],'applied');});
 test('paused bridge rejects and pause clears queue',()=>{const b=new GameBridge(defaults(),()=>{});assert.equal(b.enqueue({action:'points'}),false);b.beat=Date.now();b.arm();assert.equal(b.enqueue({action:'points'}),true);b.pause();assert.equal(b.queue.length,0);assert.equal(b.armed,false);});
+
+test('saved but disconnected gifts explain the missing receiver instead of claiming manual pause',()=>{
+ const messages=[];const b=new GameBridge(defaults(),(...e)=>messages.push(e));b.enableAfterSave();
+ assert.equal(b.enqueue({action:'points',gift:'GG'}),false);
+ assert.match(messages.at(-1)[1],/receiver not connected/);assert.doesNotMatch(messages.at(-1)[1],/actions paused/);
+ b.pause();b.enqueue({action:'points',gift:'GG'});assert.match(messages.at(-1)[1],/actions paused/);
+});
+
+test('launch refuses to silently reuse a game that missed the required startup flags',()=>{
+ const b=new GameBridge(defaults(),()=>{});b.gameRunning=true;
+ assert.throws(()=>b.launch(),/already running.*Close it first/);
+});
 test('missing heartbeat prevents arming and queue is capped',()=>{const b=new GameBridge({...defaults(),queueLimit:1},()=>{});assert.throws(()=>b.arm());b.beat=Date.now();b.arm();assert.equal(b.enqueue({action:'points'}),true);assert.equal(b.enqueue({action:'points'}),false);});
 test('game rejection is reported rather than called applied',()=>{const events=[];const b=new GameBridge(defaults(),(...e)=>events.push(e));b.pending={id:'abc_1',action:'spawn_near_50'};b.consume('EGGLIVE1|ack|abc_1|no_clear_space|spawn_near_50\n');assert.equal(events[0][0],'rejected');});
 

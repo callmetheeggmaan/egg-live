@@ -1,13 +1,9 @@
 {
-  "version": "0.3.1-beta.1",
+  "version": "0.3.2-beta.1",
   "channel": "beta",
-  "testOnly": false,
+  "automatedTestsPassed": 45,
+  "doorChecksPassed": 66,
+  "postRepairPaidGiftTested": false,
   "testTools": false,
-  "liveValidated": false,
-  "platform": "Windows x64",
-  "releaseChannel": "beta",
-  "unitChecks": 43,
-  "nativeChecks": 18,
-  "publicationPending": false,
-  "liveGiftEndToEndVerified": false
+  "autoConnect": false
 }

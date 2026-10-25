@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-25",
+  "localOnly": true,
+  "publicReleaseUpdated": false,
+  "liveConnectedDuringRepair": false,
+  "fixes": [
+    "lazy timer HUD allocation, max five rows plus overflow; expired rows destroyed",
+    "larger centre notification with username/gift/effect; four-second sequential presentation",
+    "extra_zombies uses actual nearby actor spawning",
+    "destination zone enabled before purchased door collision opens"
+  ],
+  "verification": {
+    "companionTestsPassed": 45,
+    "nativeBroadAssertionsPassed": 104,
+    "nativeBroadInitialFailures": 2,
+    "initialFailuresResolvedByTargetedRetest": true,
+    "targetedFailures": 0,
+    "doorCrossingsNormalDamage": 10,
+    "nativeSpawnCounts": [
+      1,
+      10,
+      50
+    ],
+    "firstSpawnObservedMs": 150,
+    "heartMeFiveRealZombies": true,
+    "instantRestartActualKey": "R",
+    "countdownRestartActualKey": "F",
+    "restartFreshSetupObserved": true,
+    "someInputEffectsSmokeOnly": true,
+    "postRepairRealTikTokGiftTested": false
+  },
+  "normalReceiverFiles": [
+    {
+      "file": "core_mod.ff",
+      "sha256": "7415b744202e7f94e68c3281e7dbc1ef04f79bf54a3bfbc29bcd16a2fdac4a7c"
+    },
+    {
+      "file": "en_core_mod.ff",
+      "sha256": "21eebc85cf0c69428200cf4bf8a89c32c2f5fabba2717af92f16aae2802fe376"
+    },
+    {
+      "file": "en_zm_mod.ff",
+      "sha256": "aaa03fe0109561804e007ce3dbef3879f212c2663a1903170f1469c62d850843"
+    },
+    {
+      "file": "zm_mod.ff",
+      "sha256": "3a11a9c5cc69694898a63edd0691449e11aeaed4c101e9b2ad86315b95d14550"
+    },
+    {
+      "file": "snd/all/zm_mod.all.sabl",
+      "sha256": "6fae77702b01e055a7a0cc3f622f8181582948e34e0b3b86b848d4b1fef2c816"
+    },
+    {
+      "file": "snd/all/zm_mod.all.sabs",
+      "sha256": "dbe1478dd8d0980d81ada039522ef5a50f85c830ca10f369da03be5f2d550bcd"
+    },
+    {
+      "file": "snd/en/zm_mod.en.sabl",
+      "sha256": "387ef9e9166941bcdbaadaf186daf56bcc21b00cc8a825a2e9a9afed81551b4f"
+    },
+    {
+      "file": "snd/en/zm_mod.en.sabs",
+      "sha256": "387ef9e9166941bcdbaadaf186daf56bcc21b00cc8a825a2e9a9afed81551b4f"
+    }
+  ],
+  "qaRemovedFromNormalSource": true,
+  "evidence": [
+    "work/hud-repair-native-full.log",
+    "work/hud-repair-targeted.log",
+    "work/hud-repair-unit.log",
+    "outputs/egg-live/repaired-centre-gift.png",
+    "outputs/egg-live/repaired-death-screen.png",
+    "outputs/egg-live/repaired-restart-countdown.png"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-25",
+  "native_checks_passed": 66,
+  "native_checks_failed": 0,
+  "complete": true,
+  "coverage": [
+    "normal engine damage",
+    "all 10 closed lanes: physical walk block",
+    "all 10 closed lanes: jump block",
+    "all 10 locked breaches: no damage safe recovery",
+    "all 5 purchases: correct cost and destination enabled",
+    "all 10 paid lanes: forward and reverse alive"
+  ],
+  "live_gifts_tested": false,
+  "published": false,
+  "files": {
+    "outputs/eggstinction/gameplay/eggstinction.gsc": "b60c7136d109b0f9a201652c24f5d0959e5fced74da8f57d5c5f0634d22f8a12",
+    "outputs/eggstinction/source/build_project.py": "5184c6411cc3e74e6dde8d2b1f2c9585ac9ab6c273783b91ac7fbff0b5f28485",
+    "outputs/eggstinction/build/map_source/zm/zm_eggstinction.map": "1f320141e832c9a5ded7a8ec2041ce85afc60ba1c2a91c515a9d53a32da41a63"
+  }
+}

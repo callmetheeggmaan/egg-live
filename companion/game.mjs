@@ -47,13 +47,14 @@ export class GameBridge {
     this.event('setup','Setup file prepared. Load Egg LIVE mod; run /exec egg_live_setup.cfg once in BO3 console, or use Launch BO3 while the game is closed. F10 is reserved for the bridge.');
   }
   launch(){
+    if(this.gameRunning===true)throw Error('BO3 is already running. Close it first, then use Open BO3 with the mod so the required receiver settings can take effect.');
     const exe=path.join(this.config.gamePath,'BlackOps3.exe');if(!fs.existsSync(exe))throw Error('Invalid BO3 folder');
     const steam=path.resolve(this.config.gamePath,'../../..','steam.exe');if(!fs.existsSync(steam))throw Error('Steam.exe not found; launch BO3 normally and use the setup command');
     const mod=receiverName(this.config.gamePath);
     this.setup();spawn(steam,['-applaunch','311210','+set','fs_game',mod,'+set','logfile','2','+set','scr_mod_enable_devblock','1','+exec','egg_live_setup.cfg'],{detached:true,stdio:'ignore',windowsHide:true}).unref();
   }
   enqueue(a){
-    if(!this.armed&&!(this.autoEnable&&this.map)){this.event('skipped',`${a.gift||'Test'}: game actions paused`);return false;}
+    if(!this.armed&&!(this.autoEnable&&this.map)){this.event('skipped',`${a.gift||'Test'}: ${this.autoEnable?'BO3 receiver not connected; close BO3, then use Open BO3 with the mod and enter Zombies':'game actions paused'}`);return false;}
     if(this.queue.length>=this.config.queueLimit){this.event('skipped','Queue limit reached');return false;}
     this.queue.push({...a,created:Date.now()});return true;
   }

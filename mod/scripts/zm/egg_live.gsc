@@ -116,9 +116,7 @@ function apply_action(action,amount,seconds)
     else if(action=="down")self DoDamage(self.health+1000,self.origin);
     else if(action=="extra_zombies")
     {
-        if(!IsDefined(level.zombie_total))return "unsupported";
-        if(IsDefined(level.is_dog_round) && level.is_dog_round)return "dog_round";
-        level.zombie_total=level.zombie_total+Int(Min(50,amount));
+        return self egg_live_fun::queue_near(Int(Min(50,amount)));
     }
     else if(action=="slow")self thread egg_live_fun::timed("slow",seconds);
     else if(action=="spin") {view=self GetPlayerAngles();self SetPlayerAngles((view[0],view[1]+180,view[2]));}
@@ -190,14 +188,14 @@ function notification_worker()
         item=self.egg_live_notices[0];rest=[];
         for(i=1;i<self.egg_live_notices.size;i++)rest[rest.size]=self.egg_live_notices[i];
         self.egg_live_notices=rest;
-        if(GetTime()-item.created>30000)
+        if(GetTime()-item.created>60000)
         {
             emit("EGGLIVE1|notice|expired|"+item.action+"|"+item.viewer+"\n");continue;
         }
         self show_banner(item.action,item.viewer,item.amount,item.count,item.gift,item.seconds);
         emit("EGGLIVE1|notice|shown|"+item.action+"|"+item.viewer+"\n");
         // Poll while showing so down/death, Pause and respawn cannot leave old text.
-        for(tick=0;tick<60;tick++)
+        for(tick=0;tick<80;tick++)
         {
             if(!self ready() || !IsDefined(self.egg_live_banner))break;
             wait(.05);
@@ -234,20 +232,20 @@ function show_banner(action,viewer,amount,count=1,gift="Gift",seconds=0)
     if(count>1)title=title+"  x"+count;
     sender="TRIGGERED BY @"+viewer;
     if(viewer=="test_viewer")sender="TEST EVENT  /  Test viewer";
-    sender="@"+viewer;sender_size=1.5;
+    sender="@"+viewer;sender_size=1.7;
     if(viewer.size>26)sender_size=1.2;if(viewer.size>40)sender_size=1.0;
     // Untrusted gift names arrive as a bounded ASCII token, never HUD codes.
     words=StrTok(gift,"_");gift="";foreach(word in words){if(gift!="")gift=gift+" ";gift=gift+word;}
     detail=gift+" x"+count;if(seconds>0)detail=detail+"   +"+seconds+"s";
     if(title.size>26)title=GetSubStr(title,0,26);
     self.egg_live_banner=[];
-    self.egg_live_banner[0]=self banner_line(sender,-100,sender_size,(0.02,0.02,0.05),3,0);
-    self.egg_live_banner[1]=self banner_line(sender,-100,sender_size,(0.2,0.95,1),0,2);
-    self.egg_live_banner[2]=self banner_line(title,-78,1.65,(0.03,0.02,0.09),4,0);
-    self.egg_live_banner[3]=self banner_line(title,-78,1.65,(0.7,0.12,0.9),2,1);
-    self.egg_live_banner[4]=self banner_line(title,-78,1.65,(1,0.8,0.22),0,2);
-    self.egg_live_banner[5]=self banner_line(detail,-56,1.1,(0.02,0.03,0.08),2,0);
-    self.egg_live_banner[6]=self banner_line(detail,-56,1.1,(1,1,1),0,2);
+    self.egg_live_banner[0]=self banner_line(sender,-68,sender_size,(0.02,0.02,0.05),3,0);
+    self.egg_live_banner[1]=self banner_line(sender,-68,sender_size,(0.2,0.95,1),0,2);
+    self.egg_live_banner[2]=self banner_line(title,-40,1.9,(0.03,0.02,0.09),4,0);
+    self.egg_live_banner[3]=self banner_line(title,-40,1.9,(0.7,0.12,0.9),2,1);
+    self.egg_live_banner[4]=self banner_line(title,-40,1.9,(1,0.8,0.22),0,2);
+    self.egg_live_banner[5]=self banner_line(detail,-14,1.3,(0.02,0.03,0.08),2,0);
+    self.egg_live_banner[6]=self banner_line(detail,-14,1.3,(1,1,1),0,2);
     // Original short cues, played only when this notification reaches the screen.
     volume=70;if(GetDvarString("egg_live_volume","")!="")volume=GetDvarInt("egg_live_volume");
     volume=Int(Max(0,Min(100,volume)));step=Int((volume+5)/10)*10;
@@ -262,51 +260,80 @@ function clear_timers()
     if(IsDefined(self.egg_live_timers))foreach(hud in self.egg_live_timers)if(IsDefined(hud))hud Destroy();
     if(IsDefined(self.egg_live_bars))foreach(hud in self.egg_live_bars)if(IsDefined(hud))hud Destroy();
     if(IsDefined(self.egg_live_tracks))foreach(hud in self.egg_live_tracks)if(IsDefined(hud))hud Destroy();
+    if(IsDefined(self.egg_live_overflow))self.egg_live_overflow Destroy();
+    self.egg_live_overflow=undefined;
     self.egg_live_timers=[];self.egg_live_bars=[];self.egg_live_tracks=[];
+}
+function timer_slot(row)
+{
+    // Empty/expired timers must not reserve engine HUD slots. Keeping 45 hidden
+    // elements starved the map prompts, gift banners and death screen.
+    hud=NewClientHudElem(self);hud.horzAlign="right";hud.vertAlign="top";
+    hud.alignX="right";hud.alignY="top";hud.x=-18;hud.y=70;
+    hud.font="objective";hud.fontScale=1.2;hud.foreground=true;hud.sort=115;
+    hud.hideWhenDead=true;hud.hideWhenInMenu=true;hud.alpha=0;
+    self.egg_live_timers[row]=hud;
+    track=NewClientHudElem(self);track.horzAlign="right";track.vertAlign="top";
+    track.alignX="left";track.alignY="top";track.x=-168;track.y=85;
+    track SetShader("white",150,3);track.color=(0.04,0.05,0.08);
+    track.foreground=true;track.sort=113;track.hideWhenDead=true;track.hideWhenInMenu=true;
+    self.egg_live_tracks[row]=track;
+    bar=NewClientHudElem(self);bar.horzAlign="right";bar.vertAlign="top";
+    bar.alignX="left";bar.alignY="top";bar.x=-168;bar.y=85;bar SetShader("white",150,3);
+    bar.foreground=true;bar.sort=114;bar.hideWhenDead=true;bar.hideWhenInMenu=true;
+    self.egg_live_bars[row]=bar;
 }
 function timer_worker()
 {
     self endon("disconnect");self endon("egg_live_new_spawn");
-    for(i=0;i<15;i++)
-    {
-        hud=NewClientHudElem(self);hud.horzAlign="right";hud.vertAlign="top";
-        hud.alignX="right";hud.alignY="top";hud.x=-18;hud.y=70;
-        hud.font="objective";hud.fontScale=1.2;hud.foreground=true;hud.sort=115;
-        hud.hideWhenDead=true;hud.hideWhenInMenu=true;hud.alpha=0;self.egg_live_timers[i]=hud;
-        track=NewClientHudElem(self);track.horzAlign="right";track.vertAlign="top";
-        track.alignX="left";track.alignY="top";track.x=-168;track.y=85;
-        track SetShader("white",150,3);track.color=(0.04,0.05,0.08);
-        track.foreground=true;track.sort=113;track.hideWhenDead=true;track.hideWhenInMenu=true;track.alpha=0;
-        self.egg_live_tracks[i]=track;
-        bar=NewClientHudElem(self);bar.horzAlign="right";bar.vertAlign="top";
-        bar.alignX="left";bar.alignY="top";bar.x=-168;bar.y=85;bar SetShader("white",150,3);
-        bar.foreground=true;bar.sort=114;bar.hideWhenDead=true;bar.hideWhenInMenu=true;bar.alpha=0;
-        self.egg_live_bars[i]=bar;
-    }
     for(;;)
     {
-        row=0;
-        foreach(hud in self.egg_live_timers)hud.alpha=0;
-        foreach(hud in self.egg_live_tracks)hud.alpha=0;
-        foreach(hud in self.egg_live_bars)hud.alpha=0;
-        if(self ready() && IsDefined(self.egg_fun_order))foreach(action in self.egg_fun_order)
+        if(!self ready()){self clear_timers();wait(.1);continue;}
+        row=0;extra=0;
+        if(IsDefined(self.egg_fun_order))foreach(action in self.egg_fun_order)
         {
-            if(!IsDefined(self.egg_fun_until[action]) || self.egg_fun_until[action]<=GetTime() || row>=15)continue;
+            if(!IsDefined(self.egg_fun_until[action]) || self.egg_fun_until[action]<=GetTime())continue;
+            // Five visible rows leave room for map HUDs and the gift announcement.
+            // Further effects still run; the overflow count makes that explicit.
+            if(row>=5){extra++;continue;}
+            if(!IsDefined(self.egg_live_timers[row]))self timer_slot(row);
             hud=self.egg_live_timers[row];track=self.egg_live_tracks[row];bar=self.egg_live_bars[row];
             until=self.egg_fun_until[action];remaining=Int((until-GetTime()+999)/1000);
             minutes=Int(remaining/60);secs=remaining%60;prefix="";if(secs<10)prefix="0";
             title=effect_title(action);if(title.size>23)title=GetSubStr(title,0,23);
             hud SetText(title+"  "+minutes+":"+prefix+secs);
-            hud.fontScale=1.2;hud.y=70+row*25;hud.color=(1,1,1);hud.alpha=1;
-            track.y=hud.y+15;bar.y=track.y;track.alpha=0.75;bar.alpha=1;
-            bar.color=(0.2,0.85,1);if(remaining<=5)bar.color=(1,0.45,0.2);
+            hud.y=70+row*25;hud.color=(1,1,1);hud.alpha=1;
+            track.y=hud.y+15;bar.y=track.y;track.alpha=.75;bar.alpha=1;
+            bar.color=(.2,.85,1);if(remaining<=5)bar.color=(1,.45,.2);
             span=Max(1,self.egg_fun_span[action]);
             width=Int(Max(1,Min(150,150*(until-GetTime())/span)));
-            bar.timer_end=until;bar.timer_width=width;
-            bar SetShader("white",width,3);
+            bar.timer_end=until;bar.timer_width=width;bar SetShader("white",width,3);
             row++;
         }
-        wait(0.1);
+        slots=self.egg_live_timers.size;
+        for(i=row;i<slots;i++)
+        {
+            if(IsDefined(self.egg_live_timers[i]))self.egg_live_timers[i] Destroy();
+            if(IsDefined(self.egg_live_tracks[i]))self.egg_live_tracks[i] Destroy();
+            if(IsDefined(self.egg_live_bars[i]))self.egg_live_bars[i] Destroy();
+            self.egg_live_timers[i]=undefined;self.egg_live_tracks[i]=undefined;self.egg_live_bars[i]=undefined;
+        }
+        if(extra>0)
+        {
+            if(!IsDefined(self.egg_live_overflow))
+            {
+                h=NewClientHudElem(self);h.horzAlign="right";h.vertAlign="top";
+                h.alignX="right";h.x=-18;h.y=200;h.font="objective";h.fontScale=1;
+                h.foreground=true;h.sort=115;h.hideWhenDead=true;h.hideWhenInMenu=true;
+                self.egg_live_overflow=h;
+            }
+            self.egg_live_overflow SetText("+"+extra+" more active effects");
+        }
+        else if(IsDefined(self.egg_live_overflow))
+        {
+            self.egg_live_overflow Destroy();self.egg_live_overflow=undefined;
+        }
+        wait(.1);
     }
 }
 function emit(message)
@@ -327,7 +354,7 @@ function effect_title(action)
         case "heal":return "HEAL HOST";
         case "hurt":return "DAMAGE HOST (NON-LETHAL)";
         case "down":return "DOWN HOST";
-        case "extra_zombies":return "ADD ZOMBIES TO THIS WAVE";
+        case "extra_zombies":return "EXTRA WAVE ZOMBIES";
         case "slow":return "SLOW HOST";
         case "spin":return "TURN HOST AROUND";
         case "max_ammo":return "DROP MAX AMMO";
