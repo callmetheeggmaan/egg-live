@@ -1,0 +1,28 @@
+// Additive party pack: existing action IDs and defaults remain unchanged.
+export const PARTY = [
+ ['ammo_drip','Ammo drip','help',15,'Adds one round to your current magazine every half second.'],
+ ['bottomless_clip','Bottomless magazine','help',10,'Keeps the current magazine full; does not refill reserves.'],
+ ['bounty_hunt','Bounty hunt','help',20,'Earn 250 bonus points per zombie kill.'],
+ ['kill_heal','Blood bank: heal on kills','help',20,'Each kill restores 15 health, up to your normal maximum.'],
+ ['kill_ammo','Bullet bounty: ammo on kills','help',20,'Each kill adds three rounds to your current magazine.'],
+ ['regeneration','Regeneration','help',15,'Restores ten health each second. Normal zombie damage still applies.'],
+ ['clutch_recovery','Clutch recovery','help',20,'Once during the window, recover half health when below 25%.'],
+ ['one_hit_zombies','One-hit zombies','help',0,'Sets current ordinary zombies to one health; excludes the Egg Warden.'],
+ ['safety_ring','Ring of safety','help',0,'Eliminates ordinary zombies within 256 game units; excludes the Egg Warden.'],
+ ['grenade_refill','Refill lethal grenades','help',0,'Refills an already-owned lethal grenade slot to four.'],
+ ['tactical_refill','Refill tactical grenades','help',0,'Refills an already-owned tactical grenade slot to two; requires map support.'],
+ ['interest_bank','Interest bank','help',20,'Earn 10% of your points every two seconds, capped at 500 per payment.'],
+ ['hot_potato','Hot Potato: weapon shuffle','chaos',15,'Switches among your owned guns every two seconds. Requires two guns.'],
+ ['reload_tax','Reload tax','chaos',20,'Each detected magazine reload costs up to 250 points.'],
+ ['clip_leak','Leaky magazine','chaos',15,'Loses one magazine round every half second.'],
+ ['points_leak','Leaky wallet','chaos',15,'Loses up to 50 points each second; never creates negative points.'],
+ ['zombie_regen','Zombie medic aura','chaos',15,'Nearby ordinary zombies regenerate 10% health each second.'],
+ ['personal_space','Personal-space penalty','chaos',15,'Lose up to 25 points each second an ordinary zombie is very close.'],
+ ['red_light','Red Light / Green Light','chaos',15,'Alternates three-second phases. Moving during red costs five health, never the final health point.'],
+ ['keep_moving','Keep moving!','chaos',15,'Standing still costs five health per second; cannot directly down you.'],
+ ['floor_lava','Floor Is Lava','chaos',12,'After a two-second grace period, being on the ground costs five health per second. Jump to avoid it; cannot directly down you.'],
+ ['standing_tax','Standing tax','chaos',15,'Standing upright costs up to 25 points per second. Crouch or go prone to avoid it.'],
+ ['weapon_jam','Weapon jam','chaos',12,'Empties the current magazine every three seconds. Reserves stay intact.'],
+ ['reverse_toll','Reverse toll','chaos',15,'Moving backwards costs up to 50 points each second.'],
+ ['magazine_roulette','Magazine roulette','chaos',0,'Randomizes rounds in the current magazine from one to its normal capacity.']
+].map(([id,label,kind,duration,description])=>({id,label,kind,amount:1,max:1,duration,category:'Party',description}));

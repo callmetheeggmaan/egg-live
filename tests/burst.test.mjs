@@ -19,7 +19,7 @@ test('five different gifts retain their own action and sender once each under a 
 
 test('streak caps and global backpressure report the exact accepted effect count',()=>{
   const events=[];
-  const config=validateConfig({...defaults(),queueLimit:3,mappings:[{id:'rose',giftId:'5655',action:'points',cooldown:0,maxRepeat:5}]});
+  const config=validateConfig({...defaults(),uncappedGifts:false,queueLimit:3,mappings:[{id:'rose',giftId:'5655',action:'points',cooldown:0,maxRepeat:5}]});
   const bridge=new GameBridge(config,(...e)=>events.push(e));bridge.beat=Date.now();bridge.arm();
   const router=new GiftRouter(config,item=>bridge.enqueue(item),(...e)=>events.push(e));
   const gift={giftId:5655,giftType:1,groupId:'streak',repeatCount:50,userId:'1',uniqueId:'viewer'};

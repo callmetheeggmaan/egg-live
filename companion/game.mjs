@@ -9,13 +9,15 @@ function logBaseline(root){try{return fs.statSync(path.join(root,'console_mp.log
 // Only TikTok username characters enter the native config packet, never commands or HUD colour codes.
 export function packetViewer(item){return item.test?'test_viewer':String(item.viewer||'Viewer').replace(/^@/,'').replace(/[^a-zA-Z0-9_.]/g,'').slice(0,64)||'Viewer';}
 export function actionPacket(item,spec,id,protocol=2){
-  const seconds=Math.max(0,Math.min(protocol>=3?3600:120,Number(item.duration)||0));
+  const seconds=Math.max(0,Math.min(protocol>=4?Number.MAX_SAFE_INTEGER:protocol>=3?3600:120,Number(item.duration)||0));
   const base=`${id}|${spec.id}|${Math.min(spec.max,item.amount)}|${seconds}|${Math.floor(Date.now()/1000)+5}`;
   if(protocol<3)return `${base}|v2|${packetViewer(item)}`;
   const gift=String(item.gift||'Gift').replace(/[^a-zA-Z0-9 _.-]/g,'').trim().slice(0,28).replace(/ /g,'_')||'Gift';
-  return `${base}|v3|${packetViewer(item)}|${gift}|${Math.max(1,Math.min(20,Number(item.giftCount)||1))}`;
+  return `${base}|v${protocol>=4?4:3}|${packetViewer(item)}|${gift}|${Math.max(1,Math.min(protocol>=4?Number.MAX_SAFE_INTEGER:20,Number(item.giftCount)||1))}`;
 }
-export function receiverName(root){  const local=path.join(root,'mods','egg_live');  try{const meta=JSON.parse(fs.readFileSync(path.join(local,'workshop.json'),'utf8').replace(/^\uFEFF/,''));if(meta.ReceiverProtocol>=3&&fs.existsSync(path.join(local,'zone','zm_mod.ff')))return 'egg_live';}catch{}
+export function receiverName(root){
+  const local=path.join(root,'mods','egg_live');
+  try{const meta=JSON.parse(fs.readFileSync(path.join(local,'workshop.json'),'utf8').replace(/^\uFEFF/,''));if(meta.ReceiverProtocol>=3&&fs.existsSync(path.join(local,'zone','zm_mod.ff')))return 'egg_live';}catch{}
   const workshop=path.resolve(root,'../../workshop/content/311210');
   if(fs.existsSync(workshop))for(const entry of fs.readdirSync(workshop,{withFileTypes:true})){
     if(!entry.isDirectory()||!/^\d+$/.test(entry.name))continue;
@@ -36,7 +38,7 @@ export class GameBridge {
     execFile('tasklist.exe',['/FI','IMAGENAME eq BlackOps3.exe','/FO','CSV','/NH'],{windowsHide:true,timeout:3000},(error,stdout)=>{
       this.probing=false;if(error)return;
       this.gameRunning=/"BlackOps3\.exe"/i.test(stdout);
-      if(!this.gameRunning&&this.map){this.beat=0;this.map='';this.protocol=2;this.state='waiting';this.pending=null;const resume=this.autoEnable;this.pause();this.autoEnable=resume;}
+      if(!this.gameRunning&&this.map){this.beat=0;this.map='';this.protocol=2;this.state='waiting';this.pending=null;this.suspend('BO3 closed; saved actions will resume when the game reconnects.');}
     });
   }
   setup(){
@@ -55,12 +57,17 @@ export class GameBridge {
   }
   enqueue(a){
     if(!this.armed&&!(this.autoEnable&&this.map)){this.event('skipped',`${a.gift||'Test'}: ${this.autoEnable?'BO3 receiver not connected; close BO3, then use Open BO3 with the mod and enter Zombies':'game actions paused'}`);return false;}
-    if(this.queue.length>=this.config.queueLimit){this.event('skipped','Queue limit reached');return false;}
+    if(!this.config.uncappedGifts&&this.queue.length>=this.config.queueLimit){this.event('skipped','Queue limit reached');return false;}
+    if(this.config.uncappedGifts&&ACTIONS.find(s=>s.id===a.action)?.duration>0&&!['panic_pack','chaos_roulette'].includes(a.action)){
+      const queued=this.queue.find(q=>q.action===a.action&&q.viewer===a.viewer&&q.gift===a.gift&&q.amount===a.amount&&q.test===a.test);
+      if(queued){queued.duration+=a.duration;queued.giftCount=(queued.giftCount||1)+(a.giftCount||1);return true;}
+    }
     this.queue.push({...a,created:Date.now()});return true;
   }
   pause(){this.autoEnable=false;this.armed=false;this.queue=[];this.clearNotices=true;this.event('paused','Game actions paused; queued actions cleared');}
-  enableAfterSave(){this.autoEnable=true;if(Date.now()-this.beat<6000)this.arm();else this.event('waiting','Saved actions will enable automatically when BO3 connects.');}
-  arm(){if(Date.now()-this.beat>6000)throw Error('No recent mod heartbeat. Load the mod and enter a solo/private Zombies match first.');this.armed=true;this.event('armed','Game actions enabled');}
+  suspend(reason){this.armed=false;this.queue=[];this.pending=null;this.clearNotices=true;this.recoverAfter=this.beat;this.retryAfter=Date.now()+1500;this.event('waiting',reason);}
+  enableAfterSave(){this.autoEnable=true;this.recoverAfter=0;this.retryAfter=0;if(Date.now()-this.beat<6000)this.arm();else this.event('waiting','Saved actions will enable automatically when BO3 connects.');}
+  arm(){if(Date.now()-this.beat>6000)throw Error('No recent mod heartbeat. Load the mod and enter a solo/private Zombies match first.');this.autoEnable=true;this.armed=true;this.recoverAfter=0;this.event('armed','Game actions enabled');}
   consume(text){
     for(const m of text.matchAll(/EGGLIVE1\|audio\|([a-z0-9_]+)\|(\d+)\|([01])/g)){
       if(m[1]===this.audioToken){this.audioAck=m[1];this.event('audio',`Trigger sound ${m[3]==='1'||m[2]==='0'?'muted':m[2]+'%'} applied in BO3`);}
@@ -69,7 +76,7 @@ export class GameBridge {
       const message=m[1]==='shown'?'Notification shown':m[1]==='full'?'Notification queue full; effect already applied':'Old notification expired; effect already applied';
       this.event('notification',`${message}: ${m[2]} / @${m[3]}`);
     }
-    for(const m of text.matchAll(/EGGLIVE1\|ready\|([^|\r\n]*)\|(playing|waiting)\|(\d+)(?:\|v([23]))?/g)){if(this.audioDesired&&this.audioAck&&Date.now()-this.beat>6000)this.setAudio(this.audioDesired);this.map=m[1];this.state=m[2];this.protocol=Number(m[4]||2);this.beat=Date.now();}
+    for(const m of text.matchAll(/EGGLIVE1\|ready\|([^|\r\n]*)\|(playing|waiting)\|(\d+)(?:\|v([234]))?/g)){if(this.audioDesired&&this.audioAck&&Date.now()-this.beat>6000)this.setAudio(this.audioDesired);this.map=m[1];this.state=m[2];this.protocol=Number(m[4]||2);this.beat=Date.now();}
     for(const m of text.matchAll(/EGGLIVE1\|ack\|([a-z0-9_]+)\|([a-z_]+)\|([a-z_]+)/g)){
       if(this.pending?.id!==m[1])continue;
       this.event(m[2]==='ok'?'applied':'rejected',`${this.pending.action}: ${m[2]} · ${Date.now()-(this.pending.created??this.pending.sent??Date.now())} ms since queued`);this.pending=null;
@@ -79,7 +86,7 @@ export class GameBridge {
     const p=path.join(this.config.gamePath,'console_mp.log');if(!fs.existsSync(p))return;
     const size=fs.statSync(p).size;
     if(size===this.logSize)return;
-    if(size<this.logSize){const resume=this.autoEnable;this.logSize=0;this.beat=0;this.pause();this.autoEnable=resume;}
+    if(size<this.logSize){this.logSize=0;this.beat=0;this.fragment='';this.suspend('BO3 is loading; saved actions will resume automatically.');}
     const fd=fs.openSync(p,'r');try{
       const h=Buffer.alloc(2);fs.readSync(fd,h,0,2,0);const utf16=h[0]===255&&h[1]===254;
       const start=this.logSize||Math.max(0,size-65536);const offset=utf16?start-start%2:start;
@@ -105,8 +112,9 @@ export class GameBridge {
     if(this.processing)return;this.processing=true;
     try{
       this.readLog();
-      if(this.autoEnable&&!this.armed&&Date.now()-this.beat<6000)this.arm();
-      if(this.pending){if(Date.now()-this.pending.sent>4000){this.event('unconfirmed',`${this.pending.action}: no game acknowledgement; actions paused to prevent repeats`);this.pending=null;this.pause();}return;}
+      if(Date.now()<(this.retryAfter||0))return;
+      if(this.autoEnable&&!this.armed&&Date.now()-this.beat<6000&&this.beat>(this.recoverAfter||0))this.arm();
+      if(this.pending){if(Date.now()-this.pending.sent>4000&&(this.beat>=this.pending.sent+4000||Date.now()-this.pending.sent>30000)){this.event('unconfirmed',`${this.pending.action}: no game acknowledgement; this action will not be replayed`);this.suspend('Waiting for a fresh BO3 signal; saved actions will resume automatically.');}return;}
       if(this.clearNotices){
         if(Date.now()-this.beat>6000)return;
         const dest=path.join(this.config.gamePath,'players','egg_live_inbox.cfg');
@@ -124,20 +132,21 @@ export class GameBridge {
         catch(e){if(!/active window|focus changed/.test(e.message))this.event('error',e.message);}
         return;
       }
-      while(this.queue.length&&Date.now()-this.queue[0].created>this.config.eventMaxAge*1000){this.queue.shift();this.event('expired','Queued action expired');}
+      while(!this.config.uncappedGifts&&this.queue.length&&Date.now()-this.queue[0].created>this.config.eventMaxAge*1000){this.queue.shift();this.event('expired','Queued action expired');}
       if(!this.armed||!this.queue.length)return;
-      const item=this.queue[0];if(Date.now()-item.created>this.config.eventMaxAge*1000){this.queue.shift();this.event('expired','Queued action expired');return;}
+      const item=this.queue[0];if(!this.config.uncappedGifts&&Date.now()-item.created>this.config.eventMaxAge*1000){this.queue.shift();this.event('expired','Queued action expired');return;}
       if(Date.now()-this.beat>6000|| (this.state!=='playing'&&item.action!=='ping'))return;
       const spec=ACTIONS.find(a=>a.id===item.action);if(!spec){this.queue.shift();return;}
       if(spec.duration>0&&(this.protocol||2)<3){this.queue.shift();this.event('rejected',`${spec.label}: update the Workshop mod and restart BO3 to enable stacking timers.`);return;}
+      if(this.config.uncappedGifts&&(this.protocol||2)<4){if(!this.uncappedWarning){this.event('waiting','Uncapped gifts require the updated receiver. Restart BO3 after installing it; queued gifts are retained.');this.uncappedWarning=true;}return;}
       const id=`${this.session}_${++this.sequence}`;
       const packet=actionPacket(item,spec,id,this.protocol||2);
       const dest=path.join(this.config.gamePath,'players','egg_live_inbox.cfg');
       fs.writeFileSync(dest+'.tmp',`modvar egg_live_command ${packet}\n`);fs.renameSync(dest+'.tmp',dest);
       // One request outstanding; never retry an unconfirmed game action.
       try{await this.key();this.focusWait=false;this.queue.shift();this.pending={...item,id,sent:Date.now()};}
-      catch(e){if(/active window|focus changed/.test(e.message)){if(!this.focusWait)this.event('waiting',e.message);this.focusWait=true;}else{this.event('error',e.message);this.pause();}}
-    }catch(e){this.event('error',e.message);this.pause();}finally{this.processing=false;}
+      catch(e){if(/active window|focus changed/.test(e.message)){if(!this.focusWait)this.event('waiting',e.message);this.focusWait=true;}else{this.event('error',e.message);this.suspend('Input interrupted; saved actions will resume after a fresh BO3 signal.');}}
+    }catch(e){this.event('error',e.message);this.suspend('Connection interrupted; saved actions will resume automatically.');}finally{this.processing=false;}
   }
   status(){const fresh=Date.now()-this.beat<6000;return {armed:this.armed,autoEnable:!!this.autoEnable,queue:this.queue.length,pending:this.pending?.action||'',connected:!!this.map&&this.gameRunning!==false,signalFresh:fresh,map:this.map,state:fresh?this.state:'paused',protocol:this.protocol||2,audioSynced:!!this.audioToken&&this.audioAck===this.audioToken};}
 }

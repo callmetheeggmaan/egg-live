@@ -8,7 +8,7 @@
 Click **Subscribe**, then let Steam finish downloading.
 
 ### 2. Download the companion
-[**Download Egg LIVE for Windows →**](https://github.com/callmetheeggmaan/egg-live/releases/download/v0.3.2-beta.1/Egg-LIVE-Windows.zip)
+[**Download Egg LIVE for Windows →**](https://github.com/callmetheeggmaan/egg-live/releases/download/v0.3.3-beta.1/Egg-LIVE-Windows.zip)
 
 Extract the whole ZIP, then double-click **Egg LIVE.exe**. Keep the `app` folder beside it. Node/Python are included; you do not need to install them.
 
@@ -27,17 +27,17 @@ Use **Pause all actions** whenever you need to stop effects. Trigger volume and 
 
 ## LIVE beta status
 
-Real TikTok connectivity is **enabled**. Nothing connects automatically at startup, and the player release has no fake gift/test buttons.
+Real TikTok connectivity is **enabled**. Nothing connects automatically at startup, and labelled Test in BO3 buttons allow offline practice.
 
-Real Rose and Heart Me events previously reached the gameplay receiver. **A post-repair paid-gift test and independent clean-PC testing remain pending.** This is a LIVE-enabled beta, not a fully validated production release. Connection availability depends on the unofficial TikTok connector and can change.
+Real Rose and Heart Me events previously reached the gameplay receiver. The owner reports real TikTok LIVE testing of this update. **Independent clean-PC testing remains pending.** This is a LIVE-enabled beta, not a fully validated production release. Connection availability depends on the unofficial TikTok connector and can change.
 
-45 automated checks passed. Native HUD/action checks and targeted retests passed, both restart controls were verified, and all 66 doorway checks passed; the compiled launcher started successfully using bundled runtimes with LIVE enabled and disconnected. The Workshop download was verified on the development PC. Independent clean-PC testing remains pending.
+57 automated checks passed. Native HUD/action checks and targeted retests passed, both restart controls were verified, and all 66 doorway checks passed; the compiled launcher started successfully using bundled runtimes with LIVE enabled and disconnected. The Workshop download was verified on the development PC. Independent clean-PC testing remains pending.
 
 ## Timers and gift streaks
 
-Timed gifts add to the remaining duration of the same effect. For example, 5 Roses at 10 seconds per gift add 50 seconds, within your rule's combo limit. Stable gift streaks update as counts arrive; duplicate/final frames do not count twice. Without a stable combo ID, the connector waits for the final frame.
+Timed gifts add to the remaining duration of the same effect. For example, 5 Roses at 10 seconds per gift add 50 seconds with no combo cap. Stable gift streaks update as counts arrive; duplicate/final frames do not count twice. Without a stable combo ID, the connector waits for the final frame.
 
-Up to five active effects have a compact countdown; further effects retain their gameplay and show an overflow count. Each visible timer has a countdown and shrinking bar on the right. Additional effects stack underneath; new gifts refill the matching bar. Opposing movement speeds replace one another. Timers cap at 60 minutes remaining.
+Up to five active effects have a compact countdown; further effects retain their gameplay and show an overflow count. Each visible timer has a countdown and shrinking bar on the right. Additional effects stack underneath; new gifts refill the matching bar. Opposing movement speeds replace one another. Timers no longer have the one-hour cap. Native engine limits still apply.
 
 The mod connects at the setup hub before difficulty selection. Gameplay effects wait for an active player, a fresh game signal and BO3 focus. Notifications show the viewer's username, gift and effect sequentially; effects do not wait for the presentation queue.
 
@@ -77,3 +77,7 @@ Unofficial; not affiliated with TikTok/ByteDance, Activision, Treyarch or Valve.
 ## Repair update 0.3.2
 
 Restores map HUD/prompts, centre viewer announcements and death/restart text by allocating timer HUD only when needed. Heart Me add-zombies actions now deliver actual nearby actors. Eggstinction door collision and safe zone transitions are repaired in the separate map update; updating the receiver alone cannot replace a map. Local checks do not guarantee every effect on every custom map.
+
+## Update 0.3.3
+
+25 new interactions, alphabetical Help/Chaos groups, uncapped gift streaks and timer top-ups, offline practice and automatic readiness. Update both downloads and restart BO3. See [all additions](docs/PARTY-INTERACTIONS.md) and [uncapped behavior](docs/UNCAPPED-GIFTS.md).

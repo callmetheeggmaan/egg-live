@@ -7,6 +7,7 @@
 #using scripts\zm\_zm_utility;
 #using scripts\zm\_zm_powerups;
 #using scripts\zm\egg_live_fun;
+#using scripts\zm\egg_live_party;
 #insert scripts\shared\shared.gsh;
 #namespace egg_live;
 REGISTER_SYSTEM("egg_live", &init, undefined)
@@ -19,10 +20,11 @@ function init()
 function spawned()
 {
     if(!self IsHost())return;
-    emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|waiting|"+GetUTC()+"|v3\n");
+    emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|waiting|"+GetUTC()+"|v4\n");
     self notify("egg_live_new_spawn");
     self SetMoveSpeedScale(1);
     self egg_live_fun::reset();
+    self egg_live_party::reset();
     self clear_banner();
     self.egg_live_notices=[];
     self clear_timers();
@@ -50,7 +52,7 @@ function listen()
         if(GetTime()-last_beat>2000)
         {
             state="waiting";if(self ready())state="playing";
-            emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|"+state+"|"+GetUTC()+"|v3\n");
+            emit("EGGLIVE1|ready|"+GetDvarString("mapname")+"|"+state+"|"+GetUTC()+"|v4\n");
             last_beat=GetTime();
         }
         if(GetDvarInt("egg_live_clear")==1)
@@ -87,7 +89,7 @@ function listen()
                     if(status=="ok" && action!="ping")
                     {
                         viewer="Viewer";if(parts.size>=7)viewer=parts[6];
-                        gift="Gift";count=1;if(parts.size==9){gift=parts[7];count=Int(Max(1,Min(20,Int(parts[8]))));}
+                        gift="Gift";count=1;if(parts.size==9){gift=parts[7];count=Int(Max(1,Int(parts[8])));}
                         self queue_banner(action,viewer,amount,gift,count,seconds);
                     }
                     emit("EGGLIVE1|ack|"+id+"|"+status+"|"+action+"\n");
@@ -99,7 +101,7 @@ function listen()
 }
 function apply_action(action,amount,seconds)
 {
-    amount=Int(Max(1,Min(100000,amount)));seconds=Int(Max(1,Min(3600,seconds)));
+    amount=Int(Max(1,Min(100000,amount)));seconds=Int(Max(1,seconds));
     if(action=="ping")return "ok";
     if(action=="points")self zm_score::add_to_player_score(amount,false);
     else if(action=="take_points")self zm_score::minus_to_player_score(Int(Min(self.score,amount)));
@@ -127,7 +129,12 @@ function apply_action(action,amount,seconds)
         if(!IsDefined(level.zombie_powerups[power]))return "unsupported";
         zm_powerups::specific_powerup_drop(power,self.origin,self.team);
     }
-    else return self egg_live_fun::apply(action,amount,seconds);
+    else
+    {
+        status=self egg_live_fun::apply(action,amount,seconds);
+        if(status=="unknown_action")return self egg_live_party::apply(action,seconds);
+        return status;
+    }
     return "ok";
 }
 function slow(seconds)
@@ -167,10 +174,6 @@ function queue_banner(action,viewer,amount,gift="Gift",count=1,seconds=0)
             item.count+=count;item.seconds+=seconds;return;
         }
     }
-    if(self.egg_live_notices.size>=10)
-    {
-        emit("EGGLIVE1|notice|full|"+action+"|"+viewer+"\n");return;
-    }
     item=SpawnStruct();item.action=action;item.viewer=viewer;item.amount=amount;
     item.count=count;item.gift=gift;item.seconds=seconds;item.created=GetTime();
     self.egg_live_notices[self.egg_live_notices.size]=item;
@@ -188,10 +191,6 @@ function notification_worker()
         item=self.egg_live_notices[0];rest=[];
         for(i=1;i<self.egg_live_notices.size;i++)rest[rest.size]=self.egg_live_notices[i];
         self.egg_live_notices=rest;
-        if(GetTime()-item.created>60000)
-        {
-            emit("EGGLIVE1|notice|expired|"+item.action+"|"+item.viewer+"\n");continue;
-        }
         self show_banner(item.action,item.viewer,item.amount,item.count,item.gift,item.seconds);
         emit("EGGLIVE1|notice|shown|"+item.action+"|"+item.viewer+"\n");
         // Poll while showing so down/death, Pause and respawn cannot leave old text.
@@ -213,6 +212,7 @@ function notice_sound(action)
     if(action=="spawn_near_50" || action=="panic_pack" || action=="chaos_roulette" || action=="bankrupt")return "egg_live_major";
     switch(action)
     {
+        case "hot_potato":case "reload_tax":case "clip_leak":case "points_leak":case "zombie_regen":case "personal_space":case "red_light":case "keep_moving":case "floor_lava":case "standing_tax":case "weapon_jam":case "reverse_toll":case "magazine_roulette":return "egg_live_chaos";
         case "take_points":case "empty_ammo":case "hurt":case "down":case "extra_zombies":
         case "slow":case "spin":case "spawn_near_1":case "spawn_near_10":case "empty_clip":
         case "empty_reserve":case "half_ammo":case "one_bullet":case "knife_only":case "snail":
@@ -300,7 +300,9 @@ function timer_worker()
             hud=self.egg_live_timers[row];track=self.egg_live_tracks[row];bar=self.egg_live_bars[row];
             until=self.egg_fun_until[action];remaining=Int((until-GetTime()+999)/1000);
             minutes=Int(remaining/60);secs=remaining%60;prefix="";if(secs<10)prefix="0";
-            title=effect_title(action);if(title.size>23)title=GetSubStr(title,0,23);
+            title=effect_title(action);
+            if(action=="red_light"){title="GREEN LIGHT - MOVE";if(self.egg_party_red)title="RED LIGHT - STOP";}
+            if(title.size>23)title=GetSubStr(title,0,23);
             hud SetText(title+"  "+minutes+":"+prefix+secs);
             hud.y=70+row*25;hud.color=(1,1,1);hud.alpha=1;
             track.y=hud.y+15;bar.y=track.y;track.alpha=.75;bar.alpha=1;
@@ -347,6 +349,32 @@ function effect_title(action)
 {
     switch(action)
     {
+        case "ammo_drip":return "AMMO DRIP";
+        case "bottomless_clip":return "BOTTOMLESS MAGAZINE";
+        case "bounty_hunt":return "BOUNTY HUNT";
+        case "kill_heal":return "BLOOD BANK: HEAL ON KILLS";
+        case "kill_ammo":return "BULLET BOUNTY: AMMO ON KILLS";
+        case "regeneration":return "REGENERATION";
+        case "clutch_recovery":return "CLUTCH RECOVERY";
+        case "one_hit_zombies":return "ONE-HIT ZOMBIES";
+        case "safety_ring":return "RING OF SAFETY";
+        case "grenade_refill":return "REFILL LETHAL GRENADES";
+        case "tactical_refill":return "REFILL TACTICAL GRENADES";
+        case "interest_bank":return "INTEREST BANK";
+        case "hot_potato":return "HOT POTATO: WEAPON SHUFFLE";
+        case "reload_tax":return "RELOAD TAX";
+        case "clip_leak":return "LEAKY MAGAZINE";
+        case "points_leak":return "LEAKY WALLET";
+        case "zombie_regen":return "ZOMBIE MEDIC AURA";
+        case "personal_space":return "PERSONAL-SPACE PENALTY";
+        case "red_light":return "RED LIGHT / GREEN LIGHT";
+        case "keep_moving":return "KEEP MOVING!";
+        case "floor_lava":return "FLOOR IS LAVA";
+        case "standing_tax":return "STANDING TAX";
+        case "weapon_jam":return "WEAPON JAM";
+        case "reverse_toll":return "REVERSE TOLL";
+        case "magazine_roulette":return "MAGAZINE ROULETTE";
+
         case "points":return "GIVE POINTS";
         case "take_points":return "TAKE POINTS";
         case "ammo":return "REFILL AMMUNITION";

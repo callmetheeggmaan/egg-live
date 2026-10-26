@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {defaults,validateConfig,normalizeGift,GiftRouter} from '../companion/engine.mjs';
-const config=()=>validateConfig({...defaults(),mappings:[{id:'rose',giftId:'5655',action:'points',amount:1000,duration:0,cooldown:0,maxRepeat:5,perGift:true}]});
+const config=()=>validateConfig({...defaults(),uncappedGifts:false,mappings:[{id:'rose',giftId:'5655',action:'points',amount:1000,duration:0,cooldown:0,maxRepeat:5,perGift:true}]});
 const event=(extra={})=>({giftId:5655,giftType:1,repeatEnd:1,repeatCount:3,user:{id:'123',displayId:'viewer'},groupId:'abc',common:{msgId:'1'},...extra});
 test('streak increases dispatch immediately and final frames never double count',()=>{const calls=[];const r=new GiftRouter(config(),a=>calls.push(a),()=>{});assert.equal(r.gift(event({repeatEnd:0,repeatCount:1})).sent,1);assert.equal(calls.length,1);assert.equal(r.gift(event({repeatEnd:0,repeatCount:2})).sent,1);assert.equal(r.gift(event()).sent,1);assert.equal(r.gift(event()).duplicate,true);assert.equal(r.gift(event({repeatCount:2})).duplicate,true);assert.equal(calls.length,3);});
 test('separate non-streak gifts with same gift ID stay separate',()=>{const calls=[];const r=new GiftRouter(config(),a=>calls.push(a),()=>{});r.gift(event({giftType:4,repeatCount:1,msgId:'1'}));r.gift(event({giftType:4,repeatCount:1,msgId:'2'}));assert.equal(calls.length,2);});

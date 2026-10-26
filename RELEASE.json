@@ -1,9 +1,13 @@
 {
-  "version": "0.3.2-beta.1",
+  "version": "0.3.3-beta.1",
   "channel": "beta",
-  "automatedTestsPassed": 45,
-  "doorChecksPassed": 66,
-  "postRepairPaidGiftTested": false,
+  "receiverProtocol": 4,
+  "automatedTestsPassed": 57,
+  "partyNativeChecksPassed": 35,
+  "uncappedGifts": true,
+  "ownerReportedLiveTest": true,
+  "independentCleanPCTest": false,
   "testTools": false,
+  "offlinePractice": true,
   "autoConnect": false
 }

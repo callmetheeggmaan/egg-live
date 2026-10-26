@@ -23,10 +23,11 @@ let giftCatalog={updated:bundled.updated,source:bundled.source,roomSynced:false,
 function event(kind,message){const e={id:randomUUID(),time:new Date().toISOString(),kind,message:String(message).slice(0,500)};events.unshift(e);events.length=Math.min(events.length,150);for(const c of clients)c.write(`data: ${JSON.stringify(e)}\n\n`);}
 const bridge=new GameBridge(config,event);const router=new GiftRouter(config,a=>bridge.enqueue(a),event);
 bridge.setAudio(validateAudio(config));
+if(config.mappings.some(row=>row.enabled))bridge.enableAfterSave();
 setInterval(()=>bridge.tick(),100).unref();
 bridge.checkProcess();setInterval(()=>bridge.checkProcess(),2000).unref();
 function persist(c){const temp=FILE+'.tmp';fs.writeFileSync(temp,JSON.stringify(c,null,2));fs.renameSync(temp,FILE);}
-async function disconnect(){stopped=true;clearTimeout(reconnect);const old=live;live=null;if(old)await old.disconnect();tiktok={state:'disconnected',error:'',room:''};bridge.pause();}
+async function disconnect(){stopped=true;clearTimeout(reconnect);const old=live;live=null;if(old)await old.disconnect();tiktok={state:'disconnected',error:'',room:''};bridge.suspend('TikTok disconnected; local actions remain ready when BO3 resumes.');}
 async function connect(){
   if(testOnly)throw Error('This preview is in test mode. Real TikTok LIVE testing has not been enabled.');
   if(!config.username)throw Error('Enter your TikTok username first');
@@ -37,7 +38,7 @@ async function connect(){
     const connection=new TikTokLiveConnection(config.username,{processInitialData:false,enableExtendedGiftInfo:false});live=connection;
     connection.on('error',err=>{if(isGiftCatalogueError(err)){event('catalogue','Room gift-list refresh unavailable; the preloaded library remains available.');return;}tiktok.error=String(err?.message||err?.info||err);event('tiktok',tiktok.error);});
     connection.on(WebcastEvent.GIFT??'gift',e=>{if(live!==connection||!connection.isConnected)return;router.gift(e,String(connection.roomId||tiktok.room));});
-    connection.on('disconnected',()=>{if(stopped||live!==connection)return;tiktok.state='reconnecting';bridge.pause();event('tiktok','Connection lost. Actions paused; reconnecting in 15 seconds.');reconnect=setTimeout(()=>connect().catch(e=>event('error',e.message)),15000);});
+    connection.on('disconnected',()=>{if(stopped||live!==connection)return;tiktok.state='reconnecting';bridge.suspend('TikTok reconnecting; saved actions will resume automatically.');event('tiktok','Connection lost. Actions paused; reconnecting in 15 seconds.');reconnect=setTimeout(()=>connect().catch(e=>event('error',e.message)),15000);});
     const state=await connection.connect();if(live!==connection){await connection.disconnect();return;}
     tiktok={state:'connected',error:'',room:String(state.roomId||connection.roomId||'')};if(resumeActions)bridge.enableAfterSave();event('tiktok',`Connected to @${config.username}. ${resumeActions?'Saved actions are ready when BO3 connects.':'Save your gift actions when ready.'}`);
     // Room catalogue signing is a paid service. Gift websocket routing only needs IDs,
@@ -68,9 +69,10 @@ const server=http.createServer(async(req,res)=>{
         case '/api/setup':bridge.setup();break;
         case '/api/launch':bridge.launch();break;
         case '/api/test':{
-          if(!testTools)return json(404,{error:'Test events are not available in the player release.'});
+          // Explicit local practice is available in the player release too.
+          // It uses labelled synthetic gifts and never connects to TikTok.
           const row=config.mappings.find(r=>r.id===data.mapping);if(!row)throw Error('Save and select a mapping first');
-          const sample={giftId:row.giftId,giftName:row.giftName,repeatCount:Math.min(20,Number(data.count)||1),giftType:1,repeatEnd:true,msgId:randomUUID(),groupId:randomUUID(),userId:'demo',uniqueId:'Test viewer'};
+          const sample={giftId:row.giftId,giftName:row.giftName,repeatCount:Math.max(1,Math.min(config.uncappedGifts?Number.MAX_SAFE_INTEGER:20,Math.floor(Number(data.count)||1))),giftType:1,repeatEnd:true,msgId:randomUUID(),groupId:randomUUID(),userId:'demo',uniqueId:'Test viewer'};
           if(data.send!==true){event('preview',`${row.giftName} → ${ACTIONS.find(a=>a.id===row.action).label} • ${row.amount} • ${row.duration}s`);break;}
           if(!bridge.status().connected&&!(bridge.autoEnable&&bridge.map))throw Error('BO3 is not connected. Open BO3 with the Egg LIVE mod and enter Zombies first.');
           if(!bridge.armed&&!bridge.autoEnable)throw Error('Game actions are paused. Save your actions to enable them, then try again.');
@@ -83,7 +85,7 @@ const server=http.createServer(async(req,res)=>{
       }return json(200,{ok:true});
     }
     if(req.method==='GET'){
-      const files={'/':'index.html','/app.js':'app.js','/connection-status.js':'connection-status.js','/style.css':'style.css'};const file=files[url.pathname];
+      const files={'/':'index.html','/app.js':'app.js','/connection-status.js':'connection-status.js','/action-options.js':'action-options.js','/style.css':'style.css'};const file=files[url.pathname];
       if(file){res.writeHead(200,{'Content-Type':file.endsWith('.html')?'text/html; charset=utf-8':file.endsWith('.css')?'text/css':'text/javascript','Content-Security-Policy':"default-src 'self'; img-src 'self' https:; connect-src 'self'; style-src 'self'; script-src 'self'; frame-ancestors 'none'",'X-Content-Type-Options':'nosniff','Referrer-Policy':'no-referrer'});return fs.createReadStream(path.join(HERE,'public',file)).pipe(res);}
     }json(404,{error:'Not found'});
   }catch(e){event('error',e.message);json(400,{error:e.message});}

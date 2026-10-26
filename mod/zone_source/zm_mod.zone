@@ -8,3 +8,5 @@ rawfile,egg_live_setup.cfg
 scriptparsetree,scripts/zm/egg_live_fun.gsc
 
 sound,zm_mod
+
+scriptparsetree,scripts/zm/egg_live_party.gsc

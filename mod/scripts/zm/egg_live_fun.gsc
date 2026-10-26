@@ -53,7 +53,6 @@ function queue_near(count)
     if(!IsDefined(level.zombie_total) || !IsDefined(level.zombie_spawners) || level.zombie_spawners.size==0)return "unsupported";
     if(IsDefined(level.is_dog_round) && level.is_dog_round)return "dog_round";
     if(!IsDefined(level.egg_live_near))level.egg_live_near=0;
-    if(level.egg_live_near+count>500)return "spawn_queue_full";
     zombie_utility::clear_all_corpses();
     level.egg_live_near+=count;level.zombie_total+=count;
     if(!IsDefined(level.egg_live_burst_running) || !level.egg_live_burst_running)
@@ -159,7 +158,7 @@ function enemy_speed(scale,seconds)
 {
     if(!IsDefined(self.egg_fun_enemy_scale) || self.egg_fun_enemy_scale!=scale)self.egg_fun_enemy_until=GetTime();
     self.egg_fun_enemy_scale=scale;
-    self.egg_fun_enemy_until=Min(GetTime()+3600000,Max(GetTime(),self.egg_fun_enemy_until)+seconds*1000);
+    self.egg_fun_enemy_until=Max(GetTime(),self.egg_fun_enemy_until)+seconds*1000.0;
     self notify("egg_fun_speed");self endon("egg_fun_speed");self endon("death");
     if(IsDefined(self.zombie_move_speed_override) && !IsDefined(self.egg_fun_base_speed))return;
     if(!IsDefined(self.egg_fun_base_speed))self.egg_fun_base_speed=self.zombie_move_speed;
@@ -186,7 +185,7 @@ function extend_timer(action,seconds,group)
     }
     self.egg_fun_actions[group]=action;
     until=GetTime();if(IsDefined(self.egg_fun_until[action]))until=Max(until,self.egg_fun_until[action]);
-    self.egg_fun_until[action]=Min(GetTime()+3600000,until+seconds*1000);
+    self.egg_fun_until[action]=until+seconds*1000.0;
     if(!IsDefined(self.egg_fun_span))self.egg_fun_span=[];
     self.egg_fun_span[action]=self.egg_fun_until[action]-GetTime();
     /# PrintLn("EGGLIVE1|timer|"+action+"|"+Int((self.egg_fun_until[action]-GetTime()+999)/1000)); #/
